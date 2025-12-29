@@ -13,6 +13,7 @@
       nav: { settings: '设置', operations: '签到', install: '安装' },
       settings: {
         title: '系统设置',
+        language: '语言',
         sheetIdLabel: 'Google 表格 ID',
         sheetIdPlaceholder: '输入Google Sheets表格ID',
         examplePrefix: '例如',
@@ -49,6 +50,7 @@
       nav: { settings: 'Settings', operations: 'Check-in', install: 'Install' },
       settings: {
         title: 'System Settings',
+        language: 'Language',
         sheetIdLabel: 'Google Sheets ID',
         sheetIdPlaceholder: 'Enter Google Sheets ID',
         examplePrefix: 'e.g.',
@@ -248,6 +250,11 @@ const app = createApp({
           apiBaseUrl.value = settings.apiBaseUrl || 'https://ifsapi.boki.one';
           checkinFormUrl.value = settings.checkinFormUrl || '';
         }
+        
+        // 如果有ID但没有数据，尝试自动刷新
+        if (spreadsheetId.value && agents.value.length === 0) {
+          loadData(true, true);
+        }
       };
 
       const loadData = async (useCache = false, silent = false) => {
@@ -348,6 +355,21 @@ const app = createApp({
         errorLogs.unshift({ timestamp: new Date().toLocaleTimeString(), message });
         if (errorLogs.length > 20) errorLogs.pop();
       };
+
+      watch(spreadsheetId, (newVal) => {
+        if (!newVal) return;
+        const match = newVal.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+        if (match && match[1]) {
+          spreadsheetId.value = match[1];
+          addLog('已自动从链接提取表格ID');
+        }
+      });
+
+      watch(currentView, (newVal) => {
+        if (newVal === 'operations' && spreadsheetId.value) {
+          loadData();
+        }
+      });
 
       const runTests = () => {
         addLog('开始运行测试...');

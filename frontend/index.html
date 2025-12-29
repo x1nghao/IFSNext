@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
     <title>IFSNext</title>
     <meta name="description" content="用于辅助IFS活动的平台">
     <meta name="theme-color" content="#1A237E">
@@ -27,30 +27,40 @@
                     document.head.appendChild(s);
                 });
             }
+            async function loadResource(urls) {
+                for (var i=0;i<urls.length;i++){
+                    try{ await load(urls[i]); return true; }catch(e){}
+                }
+                return false;
+            }
+
+            var vueUrls=[
+                './vendor/vue.global.prod.js',
+                'https://unpkg.com/vue@3/dist/vue.global.prod.js',
+                'https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js'
+            ];
+            var i18nUrls=[
+                './vendor/vue-i18n.global.prod.js',
+                'https://unpkg.com/vue-i18n@9/dist/vue-i18n.global.js',
+                'https://cdn.jsdelivr.net/npm/vue-i18n@9/dist/vue-i18n.global.prod.js'
+            ];
+
+            // Load Vue first, then VueI18n sequentially to avoid dependency issues
+            async function init() {
+                if (!window.Vue) {
+                    await loadResource(vueUrls);
+                }
+                if (window.Vue && !window.VueI18n) {
+                    await loadResource(i18nUrls);
+                }
+            }
+            
+            var loadingPromise = init();
+
             window.__ensureVue = async function(){
-                if (window.Vue && window.VueI18n) return true;
-                var vueUrls=[
-                    './vendor/vue.global.prod.js',
-                    'https://unpkg.com/vue@3/dist/vue.global.prod.js',
-                    'https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js'
-                ];
-                for (var i=0;i<vueUrls.length && !window.Vue;i++){
-                    try{ await load(vueUrls[i]); }catch(e){}
-                }
-                var i18nUrls=[
-                    './vendor/vue-i18n.global.prod.js',
-                    'https://unpkg.com/vue-i18n@9/dist/vue-i18n.global.js',
-                    'https://cdn.jsdelivr.net/npm/vue-i18n@9/dist/vue-i18n.global.prod.js'
-                ];
-                for (var j=0;j<i18nUrls.length && !window.VueI18n;j++){
-                    try{ await load(i18nUrls[j]); }catch(e){}
-                }
+                await loadingPromise;
                 return !!(window.Vue && window.VueI18n);
             };
-            setTimeout(function(){
-                var el=document.getElementById('app');
-                if (el && el.hasAttribute('v-cloak')){ el.removeAttribute('v-cloak'); }
-            },2000);
         })();
     </script>
     <!-- 连接优化 -->
@@ -73,34 +83,50 @@
             opacity: 0;
         }
         
-        /* iOS风格基础变量与组件 */
+        /* Modern iOS-like & Glassmorphism Variables */
         :root {
+            /* Vivid Blue Palette */
             --color-ios-blue-start: #007AFF;
-            --color-ios-blue-end: #0066CC;
-            --color-titlebar: #1A237E;
-            --color-titlebar-dark: #12194E;
-            --color-bg: #FFFFFF;
-            --color-bg-dark: #0F1117;
-            --color-separator: #E0E0E0;
+            --color-ios-blue-end: #0056b3;
+            
+            /* Glassmorphism Colors */
+            --color-titlebar: rgba(26, 35, 126, 0.85);
+            --color-titlebar-dark: rgba(18, 25, 78, 0.85);
+            
+            /* Backgrounds */
+            --color-bg: #F2F2F7; /* iOS System Grouped Background */
+            --color-bg-dark: #000000;
+            
+            /* Cards */
+            --color-card-bg: rgba(255, 255, 255, 0.8);
+            --color-card-bg-dark: rgba(28, 28, 30, 0.8);
+            
+            --color-separator: rgba(60, 60, 67, 0.18);
             --color-text: #000000;
-            --color-text-secondary: #9E9E9E;
-            --shadow-ios: 0 1px 3px rgba(0,0,0,0.1);
-            --radius-ios: 10px;
+            --color-text-secondary: #8E8E93;
+            
+            /* Shadows */
+            --shadow-ios: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+            --shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.08);
+            --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+            
+            --radius-ios: 14px;
             --tap-size: 44px;
-            --font-title: 18pt;
-            --font-body: 16pt;
-            --font-caption: 14pt;
+            --font-title: 20px;
+            --font-body: 16px;
+            --font-caption: 13px;
         }
         @media (prefers-color-scheme: dark) {
             :root {
                 --color-text: #FFFFFF;
-                --color-text-secondary: #B0B0B0;
-                --color-separator: #374151; /* unify dark separators */
+                --color-text-secondary: #98989D;
+                --color-separator: rgba(84, 84, 88, 0.36);
+                --shadow-ios: 0 2px 8px rgba(0, 0, 0, 0.3);
             }
         }
 
-        .title-text { font-size: var(--font-title); font-weight: 700; }
-        .body-text { font-size: var(--font-body); }
+        .title-text { font-size: var(--font-title); font-weight: 700; letter-spacing: -0.02em; }
+        .body-text { font-size: var(--font-body); letter-spacing: -0.01em; }
         .caption-text { font-size: var(--font-caption); color: var(--color-text-secondary); }
         .tap-target { min-width: var(--tap-size); min-height: var(--tap-size); }
 
@@ -111,51 +137,59 @@
             color: #ffffff;
             font-weight: 600;
             padding: 0 1.25rem;
-            border-radius: 10px;
+            border-radius: 12px;
             height: 44px;
             min-height: 44px;
-            transition: transform 200ms, box-shadow 200ms, background-color 200ms;
-            background-image: linear-gradient(to bottom, var(--color-ios-blue-start), var(--color-ios-blue-end));
-            box-shadow: var(--shadow-ios);
+            transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+            background: linear-gradient(135deg, var(--color-ios-blue-start), var(--color-ios-blue-end));
+            box-shadow: 0 4px 10px rgba(0, 122, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .btn-primary:hover { box-shadow: var(--shadow-ios); transform: translateY(-0.5px); }
-        .btn-primary:active { transform: translateY(0); }
-        .btn-primary:focus { outline: none; box-shadow: 0 0 0 2px var(--color-ios-blue-start); }
+        .btn-primary:hover { 
+            transform: translateY(-1px); 
+            box-shadow: 0 6px 15px rgba(0, 122, 255, 0.4); 
+            filter: brightness(1.05);
+        }
+        .btn-primary:active { transform: translateY(0); box-shadow: 0 2px 5px rgba(0, 122, 255, 0.2); }
+        .btn-primary:focus { outline: none; ring: 2px solid var(--color-ios-blue-start); ring-offset: 2px; }
         
         .btn-secondary {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background-color: #e5e7eb; /* gray-200 */
-            color: #1f2937; /* gray-800 */
+            background-color: rgba(118, 118, 128, 0.12);
+            color: var(--color-ios-blue-start);
             font-weight: 500;
             padding: 0 1.25rem;
-            border-radius: 10px;
+            border-radius: 12px;
             height: 44px;
             min-height: 44px;
-            box-shadow: 0 1px 1px rgba(0,0,0,.05);
-            transition: filter 150ms ease;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
         }
-        .btn-secondary:hover { filter: brightness(1.04); }
-        .dark .btn-secondary { background-color: #374151; color: #ffffff; }
+        .btn-secondary:hover { background-color: rgba(118, 118, 128, 0.2); }
+        .dark .btn-secondary { background-color: rgba(118, 118, 128, 0.24); color: #fff; }
         
         .input-field {
             width: 100%;
             padding: 0 1rem;
-            border-radius: 10px;
+            border-radius: 12px;
             outline: none;
-            transition: box-shadow 200ms ease, border-color 200ms ease;
+            transition: all 0.2s ease;
             height: 44px;
-            border: 1px solid var(--color-separator);
-            box-shadow: var(--shadow-ios);
-            background-color: var(--color-bg);
+            border: 1px solid transparent;
+            box-shadow: none;
+            background-color: rgba(118, 118, 128, 0.12);
             color: var(--color-text);
+            font-size: 16px;
         }
-        .input-field:focus { box-shadow: 0 0 0 2px var(--color-ios-blue-start); }
+        .input-field:focus { 
+            background-color: var(--color-bg); 
+            box-shadow: 0 0 0 2px var(--color-ios-blue-start); 
+        }
         .dark .input-field {
-            background-color: #111827; /* gray-900 to match panels */
+            background-color: rgba(118, 118, 128, 0.24);
             color: var(--color-text);
-            border-color: #374151; /* gray-700 for better dark contrast */
         }
         /* 输入框占位符颜色优化 */
         .input-field::placeholder { color: #9CA3AF; }
@@ -211,46 +245,63 @@
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
         }
         .card {
-            background-color: #ffffff;
-            border: 1px solid var(--color-separator);
-            border-radius: 16px;
-            box-shadow: 0 1px 2px rgba(0,0,0,.06);
+            background-color: var(--color-card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: var(--radius-ios);
+            box-shadow: var(--shadow-glass);
+            transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
         }
         .dark .card {
-            background-color: #1f2937; /* gray-800 */
-            border-color: var(--color-separator);
+            background-color: var(--color-card-bg-dark);
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
         /* Agent卡片底色恢复 */
-        .agent-card--resistance { background-color: #eff6ff; } /* blue-50 */
-        .dark .agent-card--resistance { background-color: #1e3a8a; } /* blue-900 */
-        .agent-card--enlightened { background-color: #f0fdf4; } /* green-50 */
-        .dark .agent-card--enlightened { background-color: #14532d; } /* green-900 */
+        .agent-card--resistance { background-color: rgba(239, 246, 255, 0.7); } /* blue-50 opacity */
+        .dark .agent-card--resistance { background-color: rgba(30, 58, 138, 0.4); } /* blue-900 opacity */
+        .agent-card--enlightened { background-color: rgba(240, 253, 244, 0.7); } /* green-50 opacity */
+        .dark .agent-card--enlightened { background-color: rgba(20, 83, 45, 0.4); } /* green-900 opacity */
         .segmented-group {
             display: inline-flex;
             align-items: center;
-            border-radius: 12px;
-            background-color: #ffffff;
-            border: 1px solid var(--color-separator);
-            box-shadow: 0 1px 2px rgba(0,0,0,.06);
-            overflow: hidden;
+            border-radius: 10px;
+            background-color: rgba(118, 118, 128, 0.12);
+            padding: 2px;
+            border: none;
+            box-shadow: none;
         }
         .dark .segmented-group { 
-            background-color: #111827; /* gray-900 for clearer contrast */
-            border-color: #374151; /* subtle dark divider */
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.35);
+            background-color: rgba(118, 118, 128, 0.24);
+            border: none;
+            box-shadow: none;
         }
         .segmented-btn {
-            padding: 0 0.75rem;
-            height: 32px;
-            font-size: 0.875rem;
-            color: #374151; /* gray-700 */
-            transition: background-color 200ms ease, color 200ms ease;
+            padding: 4px 12px;
+            height: 28px;
+            font-size: 13px;
+            color: var(--color-text);
+            font-weight: 500;
+            border-radius: 8px;
+            border: none;
         }
-        .dark .segmented-btn { color: #e5e7eb; }
-        .segmented-btn + .segmented-btn { border-left: 1px solid var(--color-separator); }
+        .segmented-btn:hover { background-color: rgba(0,0,0,0.05); }
+        .dark .segmented-btn { color: var(--color-text); }
+        .segmented-btn + .segmented-btn { border-left: none; margin-left: 2px; }
         .segmented-active {
-            background-image: linear-gradient(to bottom, var(--color-ios-blue-start), var(--color-ios-blue-end));
-            color: #ffffff;
+            background-color: #FFFFFF;
+            color: #000000;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 3px 1px rgba(0,0,0,0.04);
+            background-image: none;
+        }
+        .dark .segmented-active {
+            background-color: #636366;
+            color: #FFFFFF;
         }
         .lang-toggle .segmented-btn { width: 36px; height: 36px; padding: 0; border-radius: 10px; font-weight: 700; }
         .lang-toggle { padding: 2px; }
@@ -272,12 +323,36 @@
         html.pwa, body.pwa { overscroll-behavior-y: none; }
         body.pwa { overflow: hidden; }
         body.pwa #app { height: 100vh; overflow-y: auto; overscroll-behavior-y: contain; }
+
+        /* PWA & Mobile Optimizations */
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Safe Area Support */
+        .safe-pt {
+            padding-top: env(safe-area-inset-top);
+        }
+        .safe-pb {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* Better touch targets */
+        button, a, input, select {
+            touch-action: manipulation;
+        }
+        
+        /* Prevent selection on UI elements */
+        .no-select {
+            -webkit-user-select: none;
+            user-select: none;
+        }
     </style>
 </head>
 <body class="min-h-screen transition-colors duration-300 bg-[var(--color-bg)] dark:bg-[var(--color-bg-dark)]">
     <div id="app" v-cloak class="min-h-screen bg-[var(--color-bg)] dark:bg-[var(--color-bg-dark)]">
         <!-- 导航栏 -->
-        <nav class="bg-[var(--color-titlebar)] dark:bg-[var(--color-titlebar-dark)] text-white shadow-md border-b border-[var(--color-separator)] rounded-b-xl">
+        <nav class="sticky top-0 z-50 backdrop-blur-xl bg-[var(--color-titlebar)] dark:bg-[var(--color-titlebar-dark)] text-white shadow-lg border-b border-white/10 safe-pt no-select">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
                     <div class="flex items-center">
@@ -298,23 +373,28 @@
                         <button v-if="canInstall" @click="installPWA" class="px-4 h-[44px] rounded-[10px] bg-green-600 hover:bg-green-700 text-white tap-target transition-colors duration-200">
                             {{ t('nav.install') }}
                         </button>
-                        <div class="segmented-group lang-toggle">
-                            <button @click="setLocale('zh-CN')" class="segmented-btn" :class="locale === 'zh-CN' ? 'segmented-active' : ''">文</button>
-                            <button @click="setLocale('en-US')" class="segmented-btn" :class="locale === 'en-US' ? 'segmented-active' : ''">A</button>
-                        </div>
                     </div>
                 </div>
             </div>
         </nav>
 
         <!-- 主内容区域 -->
-        <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 safe-pb">
             <!-- 设置页面 -->
             <div v-if="currentView === 'settings'" class="px-4 py-6 sm:px-0">
                 <div class="card overflow-hidden">
                     <div class="p-4 sm:p-6">
                         <h2 class="title-text font-bold text-gray-900 dark:text-gray-100 mb-4">{{ t('settings.title') }}</h2>
                         
+                        <!-- 语言设置 -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">{{ t('settings.language') }}</label>
+                            <div class="segmented-group">
+                                <button @click="setLocale('zh-CN')" class="segmented-btn" :class="locale === 'zh-CN' ? 'segmented-active' : ''">简体中文</button>
+                                <button @click="setLocale('en-US')" class="segmented-btn" :class="locale === 'en-US' ? 'segmented-active' : ''">English</button>
+                            </div>
+                        </div>
+
                         <!-- 表格配置 -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
@@ -612,7 +692,7 @@
 
 
                 <!-- Vue.js 应用逻辑 -->
-                <script>(function(){var el=document.getElementById('app');if(!el)return;setTimeout(function(){if(el.hasAttribute('v-cloak')){el.removeAttribute('v-cloak');}},3000);})();</script>
+                
                 <script src="./app.js" defer></script>
 
                 
