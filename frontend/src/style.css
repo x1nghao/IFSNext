@@ -15,8 +15,8 @@
     --color-ios-blue-end: #0056b3;
     
     /* Glassmorphism Colors */
-    --color-titlebar: rgba(26, 35, 126, 0.85);
-    --color-titlebar-dark: rgba(18, 25, 78, 0.85);
+    --color-titlebar: #32acb6;
+    --color-titlebar-dark: #206f75;
     
     /* Backgrounds */
     --color-bg: #F2F2F7; /* iOS System Grouped Background */
@@ -61,10 +61,29 @@ body {
 }
 
 /* Agent卡片底色恢复 */
-.agent-card--resistance { background-color: rgba(239, 246, 255, 0.7); } /* blue-50 opacity */
+.agent-card--resistance { 
+    background-color: rgba(239, 246, 255, 0.7); /* blue-50 opacity */
+    transition: all 0.3s ease;
+}
 .dark .agent-card--resistance { background-color: rgba(30, 58, 138, 0.4); } /* blue-900 opacity */
-.agent-card--enlightened { background-color: rgba(240, 253, 244, 0.7); } /* green-50 opacity */
+
+.agent-card--resistance:hover {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    transform: translateY(-2px) scale(1.02);
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.agent-card--enlightened { 
+    background-color: rgba(240, 253, 244, 0.7); /* green-50 opacity */
+    transition: all 0.3s ease;
+}
 .dark .agent-card--enlightened { background-color: rgba(20, 83, 45, 0.4); } /* green-900 opacity */
+
+.agent-card--enlightened:hover {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+    transform: translateY(-2px) scale(1.02);
+    border-color: rgba(34, 197, 94, 0.5);
+}
 
 /* 二维码内层面板（去除多余的淡紫色边框与背景） */
 .qr-panel {

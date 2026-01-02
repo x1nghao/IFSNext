@@ -4,7 +4,18 @@ import './style.css'
 import App from './App.vue'
 import { messages } from './locales'
 
-const defaultLang = localStorage.getItem('ifsnext_lang') || (navigator.language && navigator.language.startsWith('zh') ? 'zh-CN' : 'en-US');
+const getBrowserLocale = () => {
+  const lang = navigator.language;
+  if (['zh-TW', 'zh-HK', 'zh-MO', 'zh-Hant'].some(l => lang.includes(l))) {
+    return 'zh-TW';
+  }
+  if (lang.startsWith('zh')) {
+    return 'zh-CN';
+  }
+  return 'en-US';
+};
+
+const defaultLang = localStorage.getItem('ifsnext_lang') || getBrowserLocale();
 
 const i18n = createI18n({
   legacy: false,

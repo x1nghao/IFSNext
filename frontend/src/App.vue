@@ -225,6 +225,19 @@ const loadData = async (useCache = false, silent = false) => {
   }
 };
 
+const getActionButtonClass = (agent: Agent) => {
+  if (agent.PV === 'TRUE') {
+    return 'text-xs px-3 py-1.5 rounded-md bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 font-medium';
+  }
+  const base = 'text-xs px-3 py-1.5 rounded-md text-white shadow-md hover:shadow-lg transition-all duration-200 border border-white/40 font-medium';
+  if (agent.AgentFaction === 'Resistance') {
+    return `${base} bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500`;
+  } else if (agent.AgentFaction === 'Enlightened') {
+    return `${base} bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500`;
+  }
+  return `${base} bg-[var(--color-primary)] hover:opacity-90`;
+};
+
 const toggleVerification = async (agent: Agent) => {
   if (!spreadsheetId.value) {
     addError('请先设置表格ID');
@@ -400,8 +413,9 @@ onUnmounted(() => { cleanup(); });
               <AppSegmentedControl
                 :model-value="locale"
                 :options="[
-                  { label: '简体中文', value: 'zh-CN' },
-                  { label: 'English', value: 'en-US' }
+                  { label: '🇨🇳 简体中文', value: 'zh-CN' },
+                  { label: '🇭🇰/🇹🇼 繁體中文', value: 'zh-TW' },
+                  { label: '🇺🇸 English', value: 'en-US' }
                 ]"
                 @update:model-value="setLocale"
               />
@@ -411,7 +425,7 @@ onUnmounted(() => { cleanup(); });
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">{{ t('settings.sheetIdLabel') }}</label>
-                <input v-model="spreadsheetId" :placeholder="t('settings.sheetIdPlaceholder')" class="input-field">
+                <AppInput v-model="spreadsheetId" :placeholder="t('settings.sheetIdPlaceholder')" />
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   {{ t('settings.examplePrefix') }}: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms
                 </p>
@@ -534,7 +548,7 @@ onUnmounted(() => { cleanup(); });
               <!-- 卡片栅格：最多三列 -->
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3 gap-4 justify-items-center">
                 <div v-for="agent in sortedAgents" :key="agent.AgentName" :class="[
-                                       'card w-full max-w-md p-4 transition',
+                                       'card w-full max-w-md p-4 transition rounded-[20px]',
                                        agent.AgentFaction === 'Resistance' ? 'agent-card--resistance' : 'agent-card--enlightened'
                                      ]">
                   <div class="flex items-start justify-between">
@@ -564,10 +578,7 @@ onUnmounted(() => { cleanup(); });
                                             agent.AgentFaction === 'Resistance' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                                         ]">{{ agent.AgentFaction }}</span>
 
-                    <button @click="toggleVerification(agent)" :class="[
-                                              'text-xs px-2 py-1 rounded-md',
-                                              agent.PV === 'TRUE' ? 'bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600' : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700'
-                                            ]">
+                    <button @click="toggleVerification(agent)" :class="getActionButtonClass(agent)">
                       {{ t(agent.PV === 'TRUE' ? 'actions.uncheck' : 'actions.check') }}
                     </button>
                   </div>
@@ -591,7 +602,7 @@ onUnmounted(() => { cleanup(); });
             <div class="flex justify-between items-center mb-6">
               <div class="flex items-center space-x-3">
                 <div class="w-11 h-11 rounded-[14px] flex items-center justify-center bg-white/60 dark:bg-white/10">
-                  <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg class="w-6 h-6 text-[var(--color-primary)] dark:text-[var(--color-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
                   </svg>
                 </div>
@@ -618,7 +629,7 @@ onUnmounted(() => { cleanup(); });
               <!-- Link is now dynamic -->
               <div class="text-sm text-gray-600 dark:text-gray-400 break-all mt-4 text-center">
                 <p class="mb-2">{{ t('qr.linkLabel') }}</p>
-                <a :href="checkinFormUrl" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">{{ checkinFormUrl }}</a>
+                <a :href="checkinFormUrl" target="_blank" class="text-[var(--color-primary)] dark:text-[var(--color-primary)] hover:underline">{{ checkinFormUrl }}</a>
               </div>
 
               <div class="flex items-center justify-center space-x-2 text-xs text-gray-500 dark:text-gray-500">

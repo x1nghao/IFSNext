@@ -30,7 +30,7 @@ const classes = computed(() => {
   };
 
   const variants = {
-    primary: 'text-white bg-gradient-to-br from-[var(--color-ios-blue-start)] to-[var(--color-ios-blue-end)] shadow-[0_4px_10px_rgba(0,122,255,0.3)] border border-white/10 hover:-translate-y-[1px] hover:shadow-[0_6px_15px_rgba(0,122,255,0.4)] hover:brightness-105 active:shadow-[0_2px_5px_rgba(0,122,255,0.2)]',
+    primary: 'text-white bg-gradient-to-br from-[var(--color-ios-blue-start)] to-[var(--color-ios-blue-end)] shadow-[0_4px_10px_rgba(50,172,182,0.3)] border border-white/10 hover:-translate-y-[1px] hover:shadow-[0_6px_15px_rgba(50,172,182,0.4)] hover:brightness-105 active:shadow-[0_2px_5px_rgba(50,172,182,0.2)]',
     secondary: 'bg-[rgba(118,118,128,0.12)] text-[var(--color-ios-blue-start)] hover:bg-[rgba(118,118,128,0.2)] backdrop-blur-md dark:bg-[rgba(118,118,128,0.24)] dark:text-white',
     danger: 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50',
     ghost: 'bg-transparent text-[var(--color-ios-blue-start)] hover:bg-[rgba(118,118,128,0.12)] dark:text-blue-400',
