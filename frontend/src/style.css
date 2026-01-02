@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+[v-cloak] { visibility: hidden; }
+.fade-enter-active, .fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+    opacity: 0;
+}
+
+/* Modern iOS-like & Glassmorphism Variables */
+:root {
+    /* Vivid Blue Palette */
+    --color-ios-blue-start: #007AFF;
+    --color-ios-blue-end: #0056b3;
+    
+    /* Glassmorphism Colors */
+    --color-titlebar: rgba(26, 35, 126, 0.85);
+    --color-titlebar-dark: rgba(18, 25, 78, 0.85);
+    
+    /* Backgrounds */
+    --color-bg: #F2F2F7; /* iOS System Grouped Background */
+    --color-bg-dark: #000000;
+    
+    /* Cards */
+    --color-card-bg: rgba(255, 255, 255, 0.8);
+    --color-card-bg-dark: rgba(28, 28, 30, 0.8);
+    
+    --color-separator: rgba(60, 60, 67, 0.18);
+    --color-text: #000000;
+    --color-text-secondary: #8E8E93;
+    
+    /* Shadows */
+    --shadow-ios: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    --shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.08);
+    --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+    
+    --radius-ios: 14px;
+    --tap-size: 44px;
+    --font-title: 20px;
+    --font-body: 16px;
+    --font-caption: 13px;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-text: #FFFFFF;
+        --color-text-secondary: #98989D;
+        --color-separator: rgba(84, 84, 88, 0.36);
+        --shadow-ios: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+}
+
+.title-text { font-size: var(--font-title); font-weight: 700; letter-spacing: -0.02em; }
+.body-text { font-size: var(--font-body); letter-spacing: -0.01em; }
+.caption-text { font-size: var(--font-caption); color: var(--color-text-secondary); }
+.tap-target { min-width: var(--tap-size); min-height: var(--tap-size); }
+
+/* iOS组件增强 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
+}
+
+/* Agent卡片底色恢复 */
+.agent-card--resistance { background-color: rgba(239, 246, 255, 0.7); } /* blue-50 opacity */
+.dark .agent-card--resistance { background-color: rgba(30, 58, 138, 0.4); } /* blue-900 opacity */
+.agent-card--enlightened { background-color: rgba(240, 253, 244, 0.7); } /* green-50 opacity */
+.dark .agent-card--enlightened { background-color: rgba(20, 83, 45, 0.4); } /* green-900 opacity */
+
+/* 二维码内层面板（去除多余的淡紫色边框与背景） */
+.qr-panel {
+    padding: 24px;
+    border-radius: 16px;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+}
+.dark .qr-panel {
+    background: transparent;
+    border: none;
+}
+html.pwa, body.pwa { overscroll-behavior-y: none; }
+body.pwa { overflow: hidden; }
+body.pwa #app { height: 100vh; overflow-y: auto; overscroll-behavior-y: contain; }
+
+/* PWA & Mobile Optimizations */
+body {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe Area Support */
+.safe-pt {
+    padding-top: env(safe-area-inset-top);
+}
+.safe-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Better touch targets */
+button, a, input, select {
+    touch-action: manipulation;
+}
+
+/* Prevent selection on UI elements */
+.no-select {
+    -webkit-user-select: none;
+    user-select: none;
+}

@@ -7,18 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependency directories
 node_modules
-.pnpm-store
-
-# Distribution directories
 dist
 dist-ssr
-coverage
-.nuxt
-.output
-.vercel
-.cache
+*.local
 
 # Editor directories and files
 .vscode/*
@@ -26,15 +18,7 @@ coverage
 .idea
 .DS_Store
 *.suo
-*.ntvs
+*.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# Environment variables
-.env
-.env.*
-!.env.example
-
-# Trae
-.trae

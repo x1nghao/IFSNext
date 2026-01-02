@@ -1,8 +1,8 @@
 {
   "name": "IFSNext",
   "short_name": "IFSNext",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "../",
+  "scope": "../",
   "display": "standalone",
   "background_color": "#FFFFFF",
   "theme_color": "#1A237E",
