@@ -16,17 +16,22 @@ export default defineConfig({
         name: 'IFSNext',
         short_name: 'IFSNext',
         description: 'IFS Activity Helper Platform',
-        theme_color: '#1A237E',
+        theme_color: '#32acb6',
+        background_color: '#F2F2F7',
+        display: 'standalone',
+        start_url: '/',
         icons: [
           {
             src: 'assets/android-chrome-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           },
           {
             src: 'assets/android-chrome-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       }

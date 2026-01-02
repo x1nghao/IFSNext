@@ -8,11 +8,18 @@
     opacity: 0;
 }
 
+#app { min-height: 100vh; }
+@supports (height: 100dvh) {
+    #app { min-height: 100dvh; }
+}
+
 /* Modern iOS-like & Glassmorphism Variables */
 :root {
-    /* Vivid Blue Palette */
-    --color-ios-blue-start: #007AFF;
-    --color-ios-blue-end: #0056b3;
+    --color-primary: #32acb6;
+    --color-primary-strong: #206f75;
+    --color-primary-soft: rgba(50, 172, 182, 0.16);
+
+    --color-focus-ring: rgba(50, 172, 182, 0.35);
     
     /* Glassmorphism Colors */
     --color-titlebar: #32acb6;
@@ -25,10 +32,31 @@
     /* Cards */
     --color-card-bg: rgba(255, 255, 255, 0.8);
     --color-card-bg-dark: rgba(28, 28, 30, 0.8);
+
+    --color-control-bg: rgba(118, 118, 128, 0.12);
+    --color-control-bg-strong: rgba(118, 118, 128, 0.2);
+    --color-control-bg-dark: rgba(118, 118, 128, 0.24);
+    --color-control-bg-strong-dark: rgba(118, 118, 128, 0.32);
     
     --color-separator: rgba(60, 60, 67, 0.18);
     --color-text: #000000;
     --color-text-secondary: #8E8E93;
+
+    --color-success: #34C759;
+    --color-warning: #FF9500;
+    --color-danger: #FF3B30;
+
+    --color-success-badge-bg: #166534;
+    --color-success-badge-text: #FFFFFF;
+    --color-danger-badge-bg: rgba(255, 59, 48, 0.14);
+    --color-danger-badge-text: #991b1b;
+
+    --color-resistance: #2563eb;
+    --color-resistance-bg: rgba(37, 99, 235, 0.14);
+    --color-resistance-text: #1d4ed8;
+    --color-enlightened: #16a34a;
+    --color-enlightened-bg: rgba(22, 163, 74, 0.14);
+    --color-enlightened-text: #15803d;
     
     /* Shadows */
     --shadow-ios: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
@@ -36,10 +64,17 @@
     --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
     
     --radius-ios: 14px;
+    --radius-card: 16px;
     --tap-size: 44px;
     --font-title: 20px;
     --font-body: 16px;
     --font-caption: 13px;
+
+    --color-ios-blue-start: var(--color-primary);
+    --color-ios-blue-end: var(--color-primary-strong);
+
+    accent-color: var(--color-primary);
+    color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
     :root {
@@ -47,6 +82,18 @@
         --color-text-secondary: #98989D;
         --color-separator: rgba(84, 84, 88, 0.36);
         --shadow-ios: 0 2px 8px rgba(0, 0, 0, 0.3);
+        --color-focus-ring: rgba(50, 172, 182, 0.35);
+
+        --color-success-badge-bg: rgba(20, 83, 45, 0.72);
+        --color-danger-badge-bg: rgba(127, 29, 29, 0.6);
+        --color-danger-badge-text: rgba(255, 226, 226, 0.95);
+
+        --color-resistance: rgba(147, 197, 253, 0.95);
+        --color-resistance-bg: rgba(30, 58, 138, 0.55);
+        --color-resistance-text: rgba(191, 219, 254, 0.95);
+        --color-enlightened: rgba(134, 239, 172, 0.95);
+        --color-enlightened-bg: rgba(20, 83, 45, 0.55);
+        --color-enlightened-text: rgba(187, 247, 208, 0.95);
     }
 }
 
@@ -58,31 +105,105 @@
 /* iOS组件增强 */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+.dark body {
+    background: var(--color-bg-dark);
+}
+
+.card {
+    background: var(--color-card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-ios);
+    backdrop-filter: saturate(180%) blur(18px);
+    -webkit-backdrop-filter: saturate(180%) blur(18px);
+}
+.dark .card {
+    background: var(--color-card-bg-dark);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+
+.app-select {
+    appearance: menulist;
+    -webkit-appearance: menulist;
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: var(--color-control-bg);
+    color: var(--color-text);
+    outline: none;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.app-select:hover {
+    background: var(--color-control-bg-strong);
+}
+.app-select:focus {
+    background: var(--color-bg);
+    box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+.dark .app-select {
+    background: var(--color-control-bg-dark);
+    color: var(--color-text);
+}
+.dark .app-select:hover {
+    background: var(--color-control-bg-strong-dark);
+}
+.dark .app-select:focus {
+    background: rgba(55, 55, 60, 0.85);
+}
+
+.agent-card {
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: var(--shadow-ios);
+    backdrop-filter: saturate(180%) blur(18px);
+    -webkit-backdrop-filter: saturate(180%) blur(18px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.agent-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+.agent-card:focus-within {
+    box-shadow: var(--shadow-hover), 0 0 0 2px var(--color-focus-ring);
+}
+.dark .agent-card {
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+.dark .agent-card:hover {
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.38);
+}
+.dark .agent-card:focus-within {
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.38), 0 0 0 2px var(--color-focus-ring);
 }
 
 /* Agent卡片底色恢复 */
 .agent-card--resistance { 
-    background-color: rgba(239, 246, 255, 0.7); /* blue-50 opacity */
-    transition: all 0.3s ease;
+    background: linear-gradient(135deg, rgba(239, 246, 255, 0.92), rgba(219, 234, 254, 0.78));
 }
-.dark .agent-card--resistance { background-color: rgba(30, 58, 138, 0.4); } /* blue-900 opacity */
+.dark .agent-card--resistance { background: linear-gradient(135deg, rgba(30, 58, 138, 0.56), rgba(30, 58, 138, 0.34)); }
 
 .agent-card--resistance:hover {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-    transform: translateY(-2px) scale(1.02);
-    border-color: rgba(59, 130, 246, 0.5);
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: var(--shadow-hover), 0 0 0 1px rgba(59, 130, 246, 0.18);
 }
 
 .agent-card--enlightened { 
-    background-color: rgba(240, 253, 244, 0.7); /* green-50 opacity */
-    transition: all 0.3s ease;
+    background: linear-gradient(135deg, rgba(240, 253, 244, 0.92), rgba(220, 252, 231, 0.78));
 }
-.dark .agent-card--enlightened { background-color: rgba(20, 83, 45, 0.4); } /* green-900 opacity */
+.dark .agent-card--enlightened { background: linear-gradient(135deg, rgba(20, 83, 45, 0.56), rgba(20, 83, 45, 0.34)); }
 
 .agent-card--enlightened:hover {
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
-    transform: translateY(-2px) scale(1.02);
-    border-color: rgba(34, 197, 94, 0.5);
+    border-color: rgba(34, 197, 94, 0.42);
+    box-shadow: var(--shadow-hover), 0 0 0 1px rgba(34, 197, 94, 0.16);
 }
 
 /* 二维码内层面板（去除多余的淡紫色边框与背景） */
@@ -98,8 +219,6 @@ body {
     border: none;
 }
 html.pwa, body.pwa { overscroll-behavior-y: none; }
-body.pwa { overflow: hidden; }
-body.pwa #app { height: 100vh; overflow-y: auto; overscroll-behavior-y: contain; }
 
 /* PWA & Mobile Optimizations */
 body {

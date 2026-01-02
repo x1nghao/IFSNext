@@ -156,24 +156,32 @@ const setLocale = (lang: string) => {
 const saveSettings = async () => {
   saving.value = true;
   try {
-    localStorage.setItem('ifsnext_settings', JSON.stringify({
-      spreadsheetId: spreadsheetId.value,
-      apiBaseUrl: apiBaseUrl.value,
-      checkinFormUrl: checkinFormUrl.value
-    }));
-    addLog('设置已保存');
+    try {
+      localStorage.setItem('ifsnext_settings', JSON.stringify({
+        spreadsheetId: spreadsheetId.value,
+        apiBaseUrl: apiBaseUrl.value,
+        checkinFormUrl: checkinFormUrl.value
+      }));
+      addLog('设置已保存');
+    } catch (e: any) {
+      addError(`设置保存失败: ${e.message}`);
+    }
   } finally {
     saving.value = false;
   }
 };
 
 const loadSettings = () => {
-  const saved = localStorage.getItem('ifsnext_settings');
-  if (saved) {
-    const settings = JSON.parse(saved);
-    spreadsheetId.value = settings.spreadsheetId || '';
-    apiBaseUrl.value = settings.apiBaseUrl || 'https://ifsapi.boki.one';
-    checkinFormUrl.value = settings.checkinFormUrl || '';
+  try {
+    const saved = localStorage.getItem('ifsnext_settings');
+    if (saved) {
+      const settings = JSON.parse(saved);
+      spreadsheetId.value = settings.spreadsheetId || '';
+      apiBaseUrl.value = settings.apiBaseUrl || 'https://ifsapi.boki.one';
+      checkinFormUrl.value = settings.checkinFormUrl || '';
+    }
+  } catch (e: any) {
+    addError(`读取设置失败: ${e.message}`);
   }
   
   if (spreadsheetId.value && agents.value.length === 0) {
@@ -227,7 +235,7 @@ const loadData = async (useCache = false, silent = false) => {
 
 const getActionButtonClass = (agent: Agent) => {
   if (agent.PV === 'TRUE') {
-    return 'text-xs px-3 py-1.5 rounded-md bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 font-medium';
+    return 'text-xs px-3 py-1.5 rounded-md bg-[var(--color-control-bg)] text-[var(--color-text)] hover:bg-[var(--color-control-bg-strong)] dark:bg-[var(--color-control-bg-dark)] dark:text-[var(--color-text)] dark:hover:bg-[var(--color-control-bg-strong-dark)] transition-colors duration-200 font-medium';
   }
   const base = 'text-xs px-3 py-1.5 rounded-md text-white shadow-md hover:shadow-lg transition-all duration-200 border border-white/40 font-medium';
   if (agent.AgentFaction === 'Resistance') {
@@ -391,7 +399,7 @@ onUnmounted(() => { cleanup(); });
             <button @click="currentView = 'operations'" :class="{ 'bg-white/10': currentView === 'operations' }" class="px-4 py-2 rounded-[10px] text-white hover:bg-white/10 tap-target transition-colors duration-200">
               {{ t('nav.operations') }}
             </button>
-            <button v-if="canInstall" @click="installPWA" class="px-4 h-[44px] rounded-[10px] bg-green-600 hover:bg-green-700 text-white tap-target transition-colors duration-200">
+            <button v-if="canInstall" @click="installPWA" class="px-4 h-[44px] rounded-[10px] bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-strong)] shadow-[0_6px_16px_rgba(50,172,182,0.35)] text-white tap-target transition-all duration-200 hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(50,172,182,0.45)] active:shadow-[0_4px_12px_rgba(50,172,182,0.28)]">
               {{ t('nav.install') }}
             </button>
           </div>
@@ -405,11 +413,11 @@ onUnmounted(() => { cleanup(); });
       <div v-if="currentView === 'settings'" class="px-4 py-6 sm:px-0">
         <div class="card overflow-hidden">
           <div class="p-4 sm:p-6">
-            <h2 class="title-text font-bold text-gray-900 dark:text-gray-100 mb-4">{{ t('settings.title') }}</h2>
+            <h2 class="title-text font-bold text-[var(--color-text)] mb-4">{{ t('settings.title') }}</h2>
 
             <!-- 语言设置 -->
             <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">{{ t('settings.language') }}</label>
+              <label class="block text-sm font-medium text-[var(--color-text)] mb-2">{{ t('settings.language') }}</label>
               <AppSegmentedControl
                 :model-value="locale"
                 :options="[
@@ -424,9 +432,9 @@ onUnmounted(() => { cleanup(); });
             <!-- 表格配置 -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">{{ t('settings.sheetIdLabel') }}</label>
+                <label class="block text-sm font-medium text-[var(--color-text)] mb-2">{{ t('settings.sheetIdLabel') }}</label>
                 <AppInput v-model="spreadsheetId" :placeholder="t('settings.sheetIdPlaceholder')" />
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
                   {{ t('settings.examplePrefix') }}: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms
                 </p>
               </div>
@@ -434,33 +442,33 @@ onUnmounted(() => { cleanup(); });
 
             <!-- 后端配置 -->
             <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">{{ t('settings.apiBaseLabel') }}</label>
+              <label class="block text-sm font-medium text-[var(--color-text)] mb-2">{{ t('settings.apiBaseLabel') }}</label>
               <AppInput v-model="apiBaseUrl" :placeholder="t('settings.apiBasePlaceholder')" />
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
                 {{ t('settings.apiBaseDefault') }}
               </p>
             </div>
 
             <!-- 签到表单配置 -->
             <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">{{ t('settings.checkinLabel') }}</label>
+              <label class="block text-sm font-medium text-[var(--color-text)] mb-2">{{ t('settings.checkinLabel') }}</label>
               <AppInput v-model="checkinFormUrl" placeholder="https://example.com/checkin-form" />
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
                 {{ t('settings.qrHint') }}
               </p>
             </div>
             <!-- 自动刷新设置 -->
             <div class="mt-6">
-              <h3 class="text-md font-medium text-gray-800 dark:text-gray-200">{{ t('autorefresh.title') }}</h3>
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ t('autorefresh.hint') }}</p>
+              <h3 class="text-md font-medium text-[var(--color-text)]">{{ t('autorefresh.title') }}</h3>
+              <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ t('autorefresh.hint') }}</p>
               <div class="mt-3 flex items-center gap-3">
-                <select v-model="autoRefreshMode" @change="setAutoRefresh(autoRefreshMode)" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <select v-model="autoRefreshMode" @change="setAutoRefresh(autoRefreshMode)" class="app-select">
                   <option value="off">{{ t('autorefresh.off') }}</option>
                   <option value="slow">{{ t('autorefresh.slow') }}</option>
                   <option value="medium">{{ t('autorefresh.medium') }}</option>
                   <option value="fast">{{ t('autorefresh.fast') }}</option>
                 </select>
-                <span v-if="isRefreshing" class="flex items-center text-sm text-blue-500">
+                <span v-if="isRefreshing" class="flex items-center text-sm text-[var(--color-primary)]">
                   <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -487,11 +495,11 @@ onUnmounted(() => { cleanup(); });
             <div class="flex items-center justify-between gap-3 mb-4 flex-nowrap">
               <!-- 搜索框 -->
               <div class="relative flex-1 min-w-0 sm:min-w-[240px]">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-400 pointer-events-none z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-secondary)] pointer-events-none z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"></path>
                 </svg>
                 <AppInput v-model="searchQuery" :placeholder="t('search.placeholder')" :has-icon="true" />
-                <button v-if="searchQuery" @click="clearSearch" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <button v-if="searchQuery" @click="clearSearch" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
                   ✕
                 </button>
               </div>
@@ -528,19 +536,19 @@ onUnmounted(() => { cleanup(); });
           <div class="p-4 sm:p-6">
             <!-- 加载状态 -->
             <div v-if="loading" class="text-center py-8">
-              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto dark:border-blue-400"></div>
-              <p class="mt-2 text-gray-600 dark:text-gray-400">{{ t('loadingData') }}</p>
+              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary)] mx-auto"></div>
+              <p class="mt-2 text-[var(--color-text-secondary)]">{{ t('loadingData') }}</p>
             </div>
 
             <!-- 空状态 -->
             <div v-else-if="!filteredAgents.length" class="text-center py-10">
-              <div class="mx-auto w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
-                <svg class="w-6 h-6 text-gray-400 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="mx-auto w-12 h-12 rounded-full bg-[var(--color-control-bg)] dark:bg-[var(--color-control-bg-dark)] flex items-center justify-center mb-3">
+                <svg class="w-6 h-6 text-[var(--color-text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
               </div>
-              <p class="title-text text-gray-700 dark:text-gray-300">{{ t('empty.title') }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('empty.hint') }}</p>
+              <p class="title-text text-[var(--color-text)]">{{ t('empty.title') }}</p>
+              <p class="text-xs text-[var(--color-text-secondary)] mt-1">{{ t('empty.hint') }}</p>
             </div>
 
             <!-- 数据卡片栅格 -->
@@ -548,25 +556,25 @@ onUnmounted(() => { cleanup(); });
               <!-- 卡片栅格：最多三列 -->
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3 gap-4 justify-items-center">
                 <div v-for="agent in sortedAgents" :key="agent.AgentName" :class="[
-                                       'card w-full max-w-md p-4 transition rounded-[20px]',
+                                       'agent-card w-full max-w-md p-4 transition rounded-[20px]',
                                        agent.AgentFaction === 'Resistance' ? 'agent-card--resistance' : 'agent-card--enlightened'
                                      ]">
                   <div class="flex items-start justify-between">
                     <div>
                       <div :class="[
                                                 'text-xl font-bold truncate',
-                                                agent.AgentFaction === 'Resistance' ? 'text-blue-600 dark:text-blue-300' : 'text-green-600 dark:text-green-300'
+                                                agent.AgentFaction === 'Resistance' ? 'text-[var(--color-resistance)]' : 'text-[var(--color-enlightened)]'
                                             ]">
                         {{ agent.AgentName }}
                       </div>
                       <div class="mt-2 flex items-center text-sm">
-                        <span class="inline-block w-2 h-2 rounded-full mr-2" :class="Number(agent.APdiff) >= 10000 ? 'bg-green-500' : 'bg-red-500'"></span>
-                        <span :class="['text-gray-600 dark:text-gray-300', (Number(agent.APdiff) < 0) ? 'text-red-500 dark:text-red-400 font-semibold' : ((Number(agent.APdiff) > 0 && Number(agent.APdiff) < 10000) ? 'text-amber-500 dark:text-amber-400 font-semibold' : '')]">ΔAP: {{ agent.APdiff }}</span>
+                        <span class="inline-block w-2 h-2 rounded-full mr-2" :class="Number(agent.APdiff) >= 10000 ? 'bg-[var(--color-success)]' : 'bg-[var(--color-danger)]'"></span>
+                        <span :class="['text-[var(--color-text-secondary)] tabular-nums', (Number(agent.APdiff) < 0) ? 'text-[var(--color-danger)] font-semibold' : ((Number(agent.APdiff) > 0 && Number(agent.APdiff) < 10000) ? 'text-[var(--color-warning)] font-semibold' : '')]">ΔAP: {{ agent.APdiff }}</span>
                       </div>
                     </div>
                     <span :class="[
                                             'px-3 py-1 rounded-full text-xs font-semibold',
-                                            agent.PV === 'TRUE' ? 'bg-green-800 text-white dark:bg-green-900' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
+                                            agent.PV === 'TRUE' ? 'bg-[var(--color-success-badge-bg)] text-[var(--color-success-badge-text)]' : 'bg-[var(--color-danger-badge-bg)] text-[var(--color-danger-badge-text)]'
                                         ]">
                       {{ t(agent.PV === 'TRUE' ? 'status.checkedIn' : 'status.notCheckedIn') }}
                     </span>
@@ -575,7 +583,7 @@ onUnmounted(() => { cleanup(); });
                   <div class="mt-3 flex items-center justify-between">
                     <span :class="[
                                             'px-2 py-1 rounded-full text-xs',
-                                            agent.AgentFaction === 'Resistance' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                            agent.AgentFaction === 'Resistance' ? 'bg-[var(--color-resistance-bg)] text-[var(--color-resistance-text)]' : 'bg-[var(--color-enlightened-bg)] text-[var(--color-enlightened-text)]'
                                         ]">{{ agent.AgentFaction }}</span>
 
                     <button @click="toggleVerification(agent)" :class="getActionButtonClass(agent)">
@@ -588,7 +596,7 @@ onUnmounted(() => { cleanup(); });
 
             <!-- 显示总数 -->
             <div class="flex justify-end mt-4">
-              <span class="text-sm text-gray-600 dark:text-gray-400">
+              <span class="text-sm text-[var(--color-text-secondary)]">
                 {{ t('list.countPrefix') }} {{ filteredAgents.length }} {{ t('list.countSuffix') }}
               </span>
             </div>
@@ -606,10 +614,10 @@ onUnmounted(() => { cleanup(); });
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
                   </svg>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('qr.title') }}</h3>
+                <h3 class="text-lg font-semibold text-[var(--color-text)]">{{ t('qr.title') }}</h3>
               </div>
-              <button @click="showQRCode = false" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors duration-200">
-                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button @click="showQRCode = false" class="w-8 h-8 rounded-full bg-[var(--color-control-bg)] dark:bg-[var(--color-control-bg-dark)] hover:bg-[var(--color-control-bg-strong)] dark:hover:bg-[var(--color-control-bg-strong-dark)] flex items-center justify-center transition-colors duration-200">
+                <svg class="w-4 h-4 text-[var(--color-text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
               </button>
@@ -625,14 +633,14 @@ onUnmounted(() => { cleanup(); });
 
             <!-- 底部说明 -->
             <div class="text-center space-y-3">
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('qr.hint') }}</p>
+              <p class="text-sm text-[var(--color-text-secondary)]">{{ t('qr.hint') }}</p>
               <!-- Link is now dynamic -->
-              <div class="text-sm text-gray-600 dark:text-gray-400 break-all mt-4 text-center">
+              <div class="text-sm text-[var(--color-text-secondary)] break-all mt-4 text-center">
                 <p class="mb-2">{{ t('qr.linkLabel') }}</p>
                 <a :href="checkinFormUrl" target="_blank" class="text-[var(--color-primary)] dark:text-[var(--color-primary)] hover:underline">{{ checkinFormUrl }}</a>
               </div>
 
-              <div class="flex items-center justify-center space-x-2 text-xs text-gray-500 dark:text-gray-500">
+              <div class="flex items-center justify-center space-x-2 text-xs text-[var(--color-text-secondary)]">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>

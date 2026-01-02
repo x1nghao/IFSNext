@@ -15,7 +15,12 @@ const getBrowserLocale = () => {
   return 'en-US';
 };
 
-const defaultLang = localStorage.getItem('ifsnext_lang') || getBrowserLocale();
+let savedLang: string | null = null;
+try {
+  savedLang = localStorage.getItem('ifsnext_lang');
+} catch {}
+
+const defaultLang = savedLang || getBrowserLocale();
 
 const i18n = createI18n({
   legacy: false,
