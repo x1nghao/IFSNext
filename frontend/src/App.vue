@@ -47,6 +47,8 @@ const isRefreshing = ref(false);
 const canInstall = ref(false);
 let deferredPrompt: any = null;
 const qrcodeCanvas = ref<HTMLCanvasElement | null>(null);
+const agentModifiedAtBySheet = ref<Record<string, Record<string, number>>>({});
+const AGENT_MODIFIED_AT_STORAGE_KEY = 'ifsnext_agent_modified_at';
 
 // Methods
 const addLog = (message: string) => {
@@ -57,6 +59,78 @@ const addLog = (message: string) => {
 const addError = (message: string) => {
   errorLogs.unshift({ timestamp: new Date().toLocaleTimeString(), message });
   if (errorLogs.length > 20) errorLogs.pop();
+};
+
+const loadAgentModifiedAt = () => {
+  try {
+    const raw = localStorage.getItem(AGENT_MODIFIED_AT_STORAGE_KEY);
+    if (!raw) return;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return;
+
+    const entries = Object.entries(parsed as Record<string, unknown>);
+    const isLegacyFlatMap =
+      entries.length > 0 &&
+      entries.every(([key, val]) => typeof key === 'string' && typeof val === 'number' && Number.isFinite(val));
+
+    if (isLegacyFlatMap) {
+      const sheetId = spreadsheetId.value || '';
+      const cleanedAgents: Record<string, number> = {};
+      for (const [agentName, timestamp] of entries as Array<[string, number]>) {
+        cleanedAgents[agentName] = timestamp;
+      }
+      agentModifiedAtBySheet.value = { [sheetId]: cleanedAgents };
+      persistAgentModifiedAt();
+      return;
+    }
+
+    const cleaned: Record<string, Record<string, number>> = {};
+    for (const [sheetId, val] of entries) {
+      if (!sheetId || typeof sheetId !== 'string') continue;
+      if (!val || typeof val !== 'object') continue;
+      const perSheet: Record<string, number> = {};
+      for (const [agentName, timestamp] of Object.entries(val as Record<string, unknown>)) {
+        if (typeof agentName === 'string' && typeof timestamp === 'number' && Number.isFinite(timestamp)) {
+          perSheet[agentName] = timestamp;
+        }
+      }
+      if (Object.keys(perSheet).length) {
+        cleaned[sheetId] = perSheet;
+      }
+    }
+    agentModifiedAtBySheet.value = cleaned;
+  } catch (e) {}
+};
+
+const persistAgentModifiedAt = () => {
+  try {
+    localStorage.setItem(AGENT_MODIFIED_AT_STORAGE_KEY, JSON.stringify(agentModifiedAtBySheet.value));
+  } catch (e) {}
+};
+
+const setAgentModifiedTime = (sheetId: string, agentName: string, timestamp: number) => {
+  const perSheet = agentModifiedAtBySheet.value[sheetId] || {};
+  agentModifiedAtBySheet.value = {
+    ...agentModifiedAtBySheet.value,
+    [sheetId]: { ...perSheet, [agentName]: timestamp }
+  };
+  persistAgentModifiedAt();
+};
+
+const formatModifiedTime = (timestamp: number) => {
+  try {
+    return new Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format(new Date(timestamp));
+  } catch (e) {
+    return new Date(timestamp).toLocaleTimeString();
+  }
+};
+
+const getAgentModifiedTimeText = (agentName: string) => {
+  const sheetId = spreadsheetId.value;
+  if (!sheetId) return '';
+  const timestamp = agentModifiedAtBySheet.value[sheetId]?.[agentName];
+  if (typeof timestamp !== 'number') return '';
+  return formatModifiedTime(timestamp);
 };
 
 const installPWA = async () => {
@@ -258,6 +332,7 @@ const toggleVerification = async (agent: Agent) => {
   const newStatus = agent.PV === 'TRUE' ? 'FALSE' : 'TRUE';
   
   agent.PV = newStatus;
+  setAgentModifiedTime(spreadsheetId.value, agent.AgentName, Date.now());
   const cachedAgent = cachedData.value.find(a => a.AgentName === agent.AgentName);
   if (cachedAgent) {
     cachedAgent.PV = newStatus;
@@ -364,6 +439,7 @@ onMounted(() => {
     document.body.classList.add('pwa');
   }
   loadSettings();
+  loadAgentModifiedAt();
   addLog('应用初始化完成');
   
   // PWA Install Prompt
@@ -586,9 +662,14 @@ onUnmounted(() => { cleanup(); });
                                             agent.AgentFaction === 'Resistance' ? 'bg-[var(--color-resistance-bg)] text-[var(--color-resistance-text)]' : 'bg-[var(--color-enlightened-bg)] text-[var(--color-enlightened-text)]'
                                         ]">{{ agent.AgentFaction }}</span>
 
-                    <button @click="toggleVerification(agent)" :class="getActionButtonClass(agent)">
-                      {{ t(agent.PV === 'TRUE' ? 'actions.uncheck' : 'actions.check') }}
-                    </button>
+                    <div class="flex items-center gap-2">
+                      <span v-if="getAgentModifiedTimeText(agent.AgentName)" class="text-xs text-[var(--color-text-secondary)] tabular-nums">
+                        {{ getAgentModifiedTimeText(agent.AgentName) }}
+                      </span>
+                      <button @click="toggleVerification(agent)" :class="getActionButtonClass(agent)">
+                        {{ t(agent.PV === 'TRUE' ? 'actions.uncheck' : 'actions.check') }}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
