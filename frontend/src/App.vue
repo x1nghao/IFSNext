@@ -31,8 +31,7 @@ const checkinFormUrl = ref('');
 const searchQuery = ref('');
 const loading = ref(false);
 const saving = ref(false);
-const verificationLoading = ref(false);
-const currentVerificationAgent = ref('');
+const verificationLoadingMap = ref<Record<string, boolean>>({});
 const agents = ref<Agent[]>([]);
 const systemPrefersDark = ref(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
 const isDark = computed(() => systemPrefersDark.value);
@@ -282,7 +281,10 @@ const loadData = async (useCache = false, silent = false) => {
   }
   try {
     const requestUrl = `${apiBaseUrl.value}/data?spreadsheet_id=${spreadsheetId.value}`;
-    const response = await fetch(requestUrl, { headers: { 'Accept': 'application/json' } });
+    const response = await fetch(requestUrl, { 
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-cache' // 强制浏览器向服务器发送请求，不使用本地强缓存
+    });
     if (!response.ok) {
       const status = response.status;
       const statusText = response.statusText || 'Unknown error';
@@ -325,8 +327,11 @@ const toggleVerification = async (agent: Agent) => {
     addError('请先设置表格ID');
     return;
   }
-  verificationLoading.value = true;
-  currentVerificationAgent.value = agent.AgentName;
+  if (verificationLoadingMap.value[agent.AgentName]) {
+    return; // 已经在处理中
+  }
+
+  verificationLoadingMap.value[agent.AgentName] = true;
   addLog(`正在${agent.PV === 'TRUE' ? '取消' : ''}验证 ${agent.AgentName}`);
   const originalStatus = agent.PV;
   const newStatus = agent.PV === 'TRUE' ? 'FALSE' : 'TRUE';
@@ -342,7 +347,13 @@ const toggleVerification = async (agent: Agent) => {
     const requestUrl = `${apiBaseUrl.value}/verify?agent_name=${encodeURIComponent(agent.AgentName)}&spreadsheet_id=${spreadsheetId.value}`;
     const response = await fetch(requestUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } });
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const errorText = await response.text();
+      let errorMessage = `HTTP ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error || errorMessage;
+      } catch (e) {}
+      throw new Error(errorMessage);
     }
     const result = await response.json();
     if (result.status === 'success') {
@@ -358,8 +369,7 @@ const toggleVerification = async (agent: Agent) => {
     addError(`验证操作失败: ${error.message}`);
     console.error('验证API调用错误:', error);
   } finally {
-    verificationLoading.value = false;
-    currentVerificationAgent.value = '';
+    verificationLoadingMap.value[agent.AgentName] = false;
   }
 };
 
@@ -666,7 +676,12 @@ onUnmounted(() => { cleanup(); });
                       <span v-if="getAgentModifiedTimeText(agent.AgentName)" class="text-xs text-[var(--color-text-secondary)] tabular-nums">
                         {{ getAgentModifiedTimeText(agent.AgentName) }}
                       </span>
-                      <button @click="toggleVerification(agent)" :class="getActionButtonClass(agent)">
+                      <button 
+                        @click="toggleVerification(agent)" 
+                        :class="[getActionButtonClass(agent), { 'opacity-50 cursor-not-allowed': verificationLoadingMap[agent.AgentName] }]"
+                        :disabled="verificationLoadingMap[agent.AgentName]"
+                      >
+                        <span v-if="verificationLoadingMap[agent.AgentName]" class="inline-block animate-spin mr-1">⌛</span>
                         {{ t(agent.PV === 'TRUE' ? 'actions.uncheck' : 'actions.check') }}
                       </button>
                     </div>

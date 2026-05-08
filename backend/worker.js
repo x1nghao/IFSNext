@@ -25,6 +25,13 @@ function jsonResponse(data, status = 200, extraHeaders = {}) {
   });
 }
 
+// 辅助函数：处理 Google Sheets API 频率限制
+function handleApiRateLimit(response) {
+  if (response.status === 429) {
+    throw new Error("Google Sheets API 频率限制，请稍后再试 (Quota exceeded)");
+  }
+}
+
 // 处理 Base64 编码
 function pemToArrayBuffer(pem) {
   // 清理私钥中的换行符和其他格式字符
@@ -125,7 +132,7 @@ async function getAccessToken() {
 
 // 5. 获取 Google Sheets 数据的函数
 // 优化：支持 range 参数，避免不必要的数据传输
-async function getSheetData(spreadsheetId, sheetName, range = 'A1:Z1000') {
+async function getSheetData(spreadsheetId, sheetName, range = 'A1:L2000') {
   const token = await getAccessToken();
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}`;
 
@@ -136,6 +143,7 @@ async function getSheetData(spreadsheetId, sheetName, range = 'A1:Z1000') {
   });
 
   if (!response.ok) {
+    handleApiRateLimit(response);
     const error = await response.text();
     throw new Error(`获取数据失败: ${response.status} ${error}`);
   }
@@ -144,17 +152,21 @@ async function getSheetData(spreadsheetId, sheetName, range = 'A1:Z1000') {
   return data.values || [];
 }
 
-// 优化：仅查找代理名称所在的行，而不是拉取整个表格
-async function findAgentRowIndex(spreadsheetId, sheetName, agentName) {
-  // 假设 Agent Name 在 E 列 (索引 4)，我们只获取这一列
-  // 注意：API 范围是 E:E，返回的数据将是一个数组的数组，每个内部数组包含一个值
-  const nameColumnData = await getSheetData(spreadsheetId, sheetName, 'E:E');
+// 优化：一次性获取 A 到 E 列，既能找到行号，也能拿到当前的 PV 状态
+async function findAgentInfo(spreadsheetId, sheetName, agentName) {
+  // 获取 A 到 E 列 (A: PV, C: Faction, E: Name)
+  const data = await getSheetData(spreadsheetId, sheetName, 'A:E');
   
   // 查找匹配的行索引 (行号 = 索引 + 1)
-  // 忽略大小写进行比较可能更健壮，但这里保持严格匹配以符合原逻辑
-  const index = nameColumnData.findIndex(row => row[0] === agentName);
+  // Agent Name 在 E 列 (索引 4)
+  const index = data.findIndex(row => row[SHEET_COLUMNS.NAME] === agentName);
   
-  return index !== -1 ? index + 1 : 0;
+  if (index === -1) return null;
+
+  return {
+    rowIndex: index + 1,
+    currentPV: data[index][SHEET_COLUMNS.PV] || "FALSE"
+  };
 }
 
 // 更新 Google Sheets 中的字段
@@ -175,6 +187,7 @@ async function updateSheetCell(spreadsheetId, sheetName, rowIndex, colLetter, va
   });
 
   if (!response.ok) {
+    handleApiRateLimit(response);
     const error = await response.text();
     throw new Error(`更新失败: ${response.status} ${error}`);
   }
@@ -184,7 +197,7 @@ async function updateSheetCell(spreadsheetId, sheetName, rowIndex, colLetter, va
 
 // Cloudflare Worker 入口
 addEventListener('fetch', (event) => {
-  event.respondWith(handleRequest(event.request));
+  event.respondWith(handleRequest(event));
 });
 
 // 处理 CORS 预检请求
@@ -198,9 +211,8 @@ function handleOptions(request) {
   return new Response(null, { headers });
 }
 
-const __data_cache = new Map();
-
-async function handleRequest(request) {
+async function handleRequest(event) {
+  const request = event.request;
   // 处理 CORS 预检请求
   if (request.method === "OPTIONS") {
     return handleOptions(request);
@@ -215,19 +227,27 @@ async function handleRequest(request) {
     return jsonResponse({ error: 'Missing spreadsheet_id' }, 400);
   }
 
+  // 统一缓存键构造逻辑
+  const cache = caches.default;
+  const dataUrl = new URL(request.url);
+  dataUrl.pathname = '/data';
+  dataUrl.searchParams.delete('agent_name'); // 验证接口不影响数据接口的缓存键内容
+  dataUrl.searchParams.sort();               // 排序参数保证键的一致性
+  const dataCacheKey = dataUrl.toString();
+
   // 路由: 获取数据
   if (url.pathname === '/data' && method === 'GET') {
     try {
-      const cacheKey = `${spreadsheetId}:${sheetName}`;
-      const cachedEntry = __data_cache.get(cacheKey);
-      const nowMs = Date.now();
-      
-      // 缓存策略：10秒缓存
-      if (cachedEntry && (nowMs - cachedEntry.time) < 10000) {
-        return jsonResponse(cachedEntry.data, 200, { 'Cache-Control': 'public, max-age=10' });
+      // 尝试从 Cloudflare Cache API 获取 (按数据中心缓存)
+      let cachedResponse = await cache.match(dataCacheKey);
+      if (cachedResponse) {
+        // 增加一个自定义响应头标识缓存命中（可选，方便调试）
+        const headers = new Headers(cachedResponse.headers);
+        headers.set('X-Cache-Status', 'HIT');
+        return new Response(cachedResponse.body, { ...cachedResponse, headers });
       }
 
-      // 获取数据 (依然获取 A-Z 列以保留原始逻辑的完整性，但可以通过调整 getSheetData 参数优化)
+      // 获取数据
       const sheetData = await getSheetData(spreadsheetId, sheetName);
       
       const filteredData = sheetData.slice(1).map(row => ({
@@ -235,11 +255,19 @@ async function handleRequest(request) {
         AgentFaction: row[SHEET_COLUMNS.FACTION],
         AgentName: row[SHEET_COLUMNS.NAME],
         APdiff: row[SHEET_COLUMNS.AP_DIFF]
-      })).filter(row => row.AgentName); // 过滤掉没有名字的空行
+      })).filter(row => row.AgentName);
 
-      __data_cache.set(cacheKey, { data: filteredData, time: nowMs });
+      const response = jsonResponse(filteredData, 200, { 
+        // s-maxage=10 让 Cloudflare 缓存 10 秒
+        // max-age=0 和 must-revalidate 强制浏览器每次都向服务器检查，不使用本地强缓存
+        'Cache-Control': 'public, s-maxage=10, max-age=0, must-revalidate',
+        'X-Cache-Status': 'MISS'
+      });
+
+      // 存入缓存 (使用 clone 因为响应体只能读取一次)
+      event.waitUntil(cache.put(dataCacheKey, response.clone()));
       
-      return jsonResponse(filteredData, 200, { 'Cache-Control': 'public, max-age=10' });
+      return response;
     } catch (error) {
       return jsonResponse({ error: error.message }, 500);
     }
@@ -253,27 +281,23 @@ async function handleRequest(request) {
         return jsonResponse({ error: 'Missing agent_name' }, 400);
       }
 
-      // 优化：只获取需要的那一列来查找行号，极大减少数据传输
-      const rowIndex = await findAgentRowIndex(spreadsheetId, sheetName, agent_name);
+      // 优化：一次 API 调用获取行号和当前 PV 状态
+      const agentInfo = await findAgentInfo(spreadsheetId, sheetName, agent_name);
 
-      if (rowIndex === 0) {
+      if (!agentInfo) {
         return jsonResponse({ error: 'Agent not found' }, 404);
       }
 
-      // 获取当前状态 (只获取该单元格)
-      // 注意：这里需要单独获取一次当前值，因为 findAgentRowIndex 没返回 PV 列的数据
-      const pvCellData = await getSheetData(spreadsheetId, sheetName, `A${rowIndex}`);
-      const currentValue = pvCellData.length > 0 && pvCellData[0].length > 0 ? pvCellData[0][0] : "FALSE";
+      const { rowIndex, currentPV } = agentInfo;
       
       // 健壮的布尔值切换逻辑
-      const isTrue = String(currentValue).toUpperCase() === "TRUE";
+      const isTrue = String(currentPV).toUpperCase() === "TRUE";
       const newValue = !isTrue;
 
       const updateResult = await updateSheetCell(spreadsheetId, sheetName, rowIndex, "A", newValue);
 
-      // 如果更新成功，清除缓存以确保下次获取 /data 是最新的
-      const cacheKey = `${spreadsheetId}:${sheetName}`;
-      __data_cache.delete(cacheKey);
+      // 如果更新成功，清除 /data 接口的缓存
+      event.waitUntil(cache.delete(dataCacheKey));
 
       return jsonResponse({ status: 'success', message: updateResult, new_value: newValue });
     } catch (error) {
