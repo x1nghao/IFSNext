@@ -6,23 +6,32 @@ IFSNext 是一个旨在辅助 Ingress 游戏中的 Ingress First Saturday (IFS) 
 1. **Frontend**: 基于 Vue 3 + Vite 的现代化前端应用，部署于 Cloudflare Pages。
 2. **Backend**: 基于 Cloudflare Workers 的后端服务，负责与 Google Sheets API 交互。
 
+## ✨ 核心亮点
+
+- 🚀 **无服务器架构**: 基于 Cloudflare Workers，全球边缘节点低延迟响应
+- 📱 **PWA 支持**: 支持离线访问与「添加到桌面」安装，弱网环境仍可正常使用
+- 🌍 **国际化**: 支持简体中文和 English，基于 Vue I18n 动态切换
+- 🔥 **高并发支持**: 成功支撑 200 人规模的线下活动高并发签到验证
+- 📊 **响应式设计**: 基于 Tailwind CSS 实现移动端/桌面端完美适配
+
 ## 🏗️ 技术栈
 
 ### 前端 (Frontend)
 位于 `frontend/` 目录。
 
 *   **框架**: [Vue 3](https://vuejs.org/) (Composition API + `<script setup>`)
-*   **构建工具**: [Vite](https://vitejs.dev/)
-*   **语言**: [TypeScript](https://www.typescriptlang.org/)
+*   **构建工具**: [Vite](https://vitejs.dev/) v5+
+*   **语言**: [TypeScript](https://www.typescriptlang.org/) v5+
 *   **样式**: [Tailwind CSS v4](https://tailwindcss.com/)
 *   **PWA**: [Vite Plugin PWA](https://vite-pwa-org.netlify.app/) (支持离线访问与安装)
-*   **国际化**: [Vue I18n](https://vue-i18n.intlify.dev/)
+*   **国际化**: [Vue I18n](https://vue-i18n.intlify.dev/) v9+
 
 ### 后端 (Backend)
 位于 `backend/` 目录。
 
-*   **平台**: Cloudflare Workers
-*   **功能**: 代理并优化 Google Sheets API 请求，提供数据查询与签到验证接口。
+*   **平台**: [Cloudflare Workers](https://workers.cloudflare.com/)
+*   **功能**: 代理并优化 Google Sheets API 请求，提供数据查询与签到验证接口
+*   **优势**: 全球边缘节点部署，低延迟响应，支持高并发场景
 
 ## 🚀 快速开始 (前端)
 
