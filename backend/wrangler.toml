@@ -1,0 +1,12 @@
+name = "ifsbackend"
+main = "worker.js"
+compatibility_date = "2024-09-10"
+
+# 关键：保留在 Cloudflare Dashboard 中配置的环境变量绑定（GOOGLE_PRIVATE_KEY 等）。
+# 若无此项，wrangler deploy 会清除 Dashboard 定义的变量，导致线上服务 500。
+keep_vars = true
+
+# 可选安全白名单：取消注释并填入实际使用的表格 ID（逗号分隔），
+# 部署后仅允许访问列表内的表格（见 README「后端部署」）
+# [vars]
+# ALLOWED_SPREADSHEET_IDS = "your-spreadsheet-id"
