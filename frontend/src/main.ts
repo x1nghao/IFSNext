@@ -3,24 +3,14 @@ import { createI18n } from 'vue-i18n'
 import './style.css'
 import App from './App.vue'
 import { messages } from './locales'
-
-const getBrowserLocale = () => {
-  const lang = navigator.language;
-  if (['zh-TW', 'zh-HK', 'zh-MO', 'zh-Hant'].some(l => lang.includes(l))) {
-    return 'zh-TW';
-  }
-  if (lang.startsWith('zh')) {
-    return 'zh-CN';
-  }
-  return 'en-US';
-};
+import { detectBrowserLocale } from './utils/locale'
 
 let savedLang: string | null = null;
 try {
   savedLang = localStorage.getItem('ifsnext_lang');
 } catch {}
 
-const defaultLang = savedLang || getBrowserLocale();
+const defaultLang = savedLang || detectBrowserLocale(navigator.language);
 
 const i18n = createI18n({
   legacy: false,

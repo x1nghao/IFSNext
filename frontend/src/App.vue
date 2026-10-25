@@ -6,20 +6,14 @@ import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppCard from '@/components/ui/AppCard.vue';
 import AppSegmentedControl from '@/components/ui/AppSegmentedControl.vue';
-
-// Types
-interface Agent {
-  AgentName: string;
-  AgentFaction: string;
-  APdiff: number | string;
-  PV: string;
-  [key: string]: any;
-}
-
-interface Log {
-  timestamp: string;
-  message: string;
-}
+import type { Agent, Log } from '@/types';
+import { extractSpreadsheetId, filterAgents, sortAgents } from '@/utils/agents';
+import {
+  addAgentModifiedTime,
+  parseAgentModifiedAt,
+  removeAgentModifiedTime,
+} from '@/utils/agentModifiedAt';
+import { isSafeHttpUrl } from '@/utils/url';
 
 const { t, locale } = useI18n();
 
@@ -63,41 +57,13 @@ const addError = (message: string) => {
 const loadAgentModifiedAt = () => {
   try {
     const raw = localStorage.getItem(AGENT_MODIFIED_AT_STORAGE_KEY);
-    if (!raw) return;
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return;
+    const parsed = parseAgentModifiedAt(raw, spreadsheetId.value || '');
+    if (!parsed) return;
 
-    const entries = Object.entries(parsed as Record<string, unknown>);
-    const isLegacyFlatMap =
-      entries.length > 0 &&
-      entries.every(([key, val]) => typeof key === 'string' && typeof val === 'number' && Number.isFinite(val));
-
-    if (isLegacyFlatMap) {
-      const sheetId = spreadsheetId.value || '';
-      const cleanedAgents: Record<string, number> = {};
-      for (const [agentName, timestamp] of entries as Array<[string, number]>) {
-        cleanedAgents[agentName] = timestamp;
-      }
-      agentModifiedAtBySheet.value = { [sheetId]: cleanedAgents };
+    agentModifiedAtBySheet.value = parsed.map;
+    if (parsed.migrated) {
       persistAgentModifiedAt();
-      return;
     }
-
-    const cleaned: Record<string, Record<string, number>> = {};
-    for (const [sheetId, val] of entries) {
-      if (!sheetId || typeof sheetId !== 'string') continue;
-      if (!val || typeof val !== 'object') continue;
-      const perSheet: Record<string, number> = {};
-      for (const [agentName, timestamp] of Object.entries(val as Record<string, unknown>)) {
-        if (typeof agentName === 'string' && typeof timestamp === 'number' && Number.isFinite(timestamp)) {
-          perSheet[agentName] = timestamp;
-        }
-      }
-      if (Object.keys(perSheet).length) {
-        cleaned[sheetId] = perSheet;
-      }
-    }
-    agentModifiedAtBySheet.value = cleaned;
   } catch (e) {}
 };
 
@@ -108,11 +74,12 @@ const persistAgentModifiedAt = () => {
 };
 
 const setAgentModifiedTime = (sheetId: string, agentName: string, timestamp: number) => {
-  const perSheet = agentModifiedAtBySheet.value[sheetId] || {};
-  agentModifiedAtBySheet.value = {
-    ...agentModifiedAtBySheet.value,
-    [sheetId]: { ...perSheet, [agentName]: timestamp }
-  };
+  agentModifiedAtBySheet.value = addAgentModifiedTime(agentModifiedAtBySheet.value, sheetId, agentName, timestamp);
+  persistAgentModifiedAt();
+};
+
+const removeAgentModifiedTimeEntry = (sheetId: string, agentName: string) => {
+  agentModifiedAtBySheet.value = removeAgentModifiedTime(agentModifiedAtBySheet.value, sheetId, agentName);
   persistAgentModifiedAt();
 };
 
@@ -145,10 +112,7 @@ const installPWA = async () => {
   }
 };
 
-const filteredAgents = computed(() => {
-  if (!searchQuery.value) return agents.value;
-  return agents.value.filter(agent => agent.AgentName.toLowerCase().includes(searchQuery.value.toLowerCase()));
-});
+const filteredAgents = computed(() => filterAgents(agents.value, searchQuery.value));
 
 const sortKey = ref('');
 const sortOrder = ref('asc');
@@ -162,32 +126,12 @@ const setSort = (key: string) => {
   }
 };
 
-const sortedAgents = computed(() => {
-  const data = filteredAgents.value.slice();
-  if (!sortKey.value) return data;
-  const getVal = (agent: Agent) => {
-    switch (sortKey.value) {
-      case 'AgentName': return (agent.AgentName || '').toLowerCase();
-      case 'AgentFaction': return (agent.AgentFaction || '').toLowerCase();
-      case 'APdiff': return Number(agent.APdiff ?? 0);
-      case 'PV': return agent.PV === 'TRUE' ? 1 : 0;
-      default: return 0;
-    }
-  };
-  data.sort((a, b) => {
-    const va = getVal(a);
-    const vb = getVal(b);
-    if (va < vb) return sortOrder.value === 'asc' ? -1 : 1;
-    if (va > vb) return sortOrder.value === 'asc' ? 1 : -1;
-    return 0;
-  });
-  return data;
-});
+const sortedAgents = computed(() => sortAgents(filteredAgents.value, sortKey.value, sortOrder.value));
 
 const generateQRCode = async () => {
-  if (qrcodeCanvas.value && checkinFormUrl.value) {
+  if (qrcodeCanvas.value && safeCheckinFormUrl.value) {
     try {
-      await QRCode.toCanvas(qrcodeCanvas.value, checkinFormUrl.value, {
+      await QRCode.toCanvas(qrcodeCanvas.value, safeCheckinFormUrl.value, {
         width: 200,
         color: {
           dark: '#000000',
@@ -201,10 +145,22 @@ const generateQRCode = async () => {
   }
 };
 
+// 仅放行 http(s) 链接，避免 javascript: 等伪协议进入二维码与 <a href>
+const safeCheckinFormUrl = computed(() => (isSafeHttpUrl(checkinFormUrl.value) ? checkinFormUrl.value : ''));
+
+const onGlobalKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') {
+    showQRCode.value = false;
+  }
+};
+
 watch(showQRCode, (val) => {
   if (val) {
+    window.addEventListener('keydown', onGlobalKeydown);
     // Wait for DOM update
     setTimeout(generateQRCode, 100);
+  } else {
+    window.removeEventListener('keydown', onGlobalKeydown);
   }
 });
 
@@ -258,7 +214,7 @@ const loadSettings = () => {
   }
   
   if (spreadsheetId.value && agents.value.length === 0) {
-    loadData(true, true);
+    loadData(true);
   }
 };
 
@@ -280,7 +236,10 @@ const loadData = async (useCache = false, silent = false) => {
     addLog('开始通过Agent加载数据...');
   }
   try {
-    const requestUrl = `${apiBaseUrl.value}/data?spreadsheet_id=${spreadsheetId.value}`;
+    if (!isSafeHttpUrl(apiBaseUrl.value)) {
+      throw new Error('API地址无效，必须以 http:// 或 https:// 开头');
+    }
+    const requestUrl = `${apiBaseUrl.value}/data?spreadsheet_id=${encodeURIComponent(spreadsheetId.value)}`;
     const response = await fetch(requestUrl, { 
       headers: { 'Accept': 'application/json' },
       cache: 'no-cache' // 强制浏览器向服务器发送请求，不使用本地强缓存
@@ -344,7 +303,7 @@ const toggleVerification = async (agent: Agent) => {
   }
   
   try {
-    const requestUrl = `${apiBaseUrl.value}/verify?agent_name=${encodeURIComponent(agent.AgentName)}&spreadsheet_id=${spreadsheetId.value}`;
+    const requestUrl = `${apiBaseUrl.value}/verify?agent_name=${encodeURIComponent(agent.AgentName)}&spreadsheet_id=${encodeURIComponent(spreadsheetId.value)}`;
     const response = await fetch(requestUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } });
     if (!response.ok) {
       const errorText = await response.text();
@@ -366,6 +325,8 @@ const toggleVerification = async (agent: Agent) => {
     if (cachedAgent) {
       cachedAgent.PV = originalStatus;
     }
+    // 回滚乐观更新时记录的修改时间，避免显示从未生效的时间戳
+    removeAgentModifiedTimeEntry(spreadsheetId.value, agent.AgentName);
     addError(`验证操作失败: ${error.message}`);
     console.error('验证API调用错误:', error);
   } finally {
@@ -380,9 +341,9 @@ const clearSearch = () => {
 
 watch(spreadsheetId, (newVal) => {
   if (!newVal) return;
-  const match = newVal.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  if (match && match[1]) {
-    spreadsheetId.value = match[1];
+  const extracted = extractSpreadsheetId(newVal);
+  if (extracted) {
+    spreadsheetId.value = extracted;
     addLog('已自动从链接提取表格ID');
   }
 });
@@ -461,7 +422,10 @@ onMounted(() => {
   });
 });
 
-onUnmounted(() => { cleanup(); });
+onUnmounted(() => {
+  cleanup();
+  window.removeEventListener('keydown', onGlobalKeydown);
+});
 </script>
 
 <template>
@@ -733,7 +697,7 @@ onUnmounted(() => { cleanup(); });
               <!-- Link is now dynamic -->
               <div class="text-sm text-[var(--color-text-secondary)] break-all mt-4 text-center">
                 <p class="mb-2">{{ t('qr.linkLabel') }}</p>
-                <a :href="checkinFormUrl" target="_blank" class="text-[var(--color-primary)] dark:text-[var(--color-primary)] hover:underline">{{ checkinFormUrl }}</a>
+                <a v-if="safeCheckinFormUrl" :href="safeCheckinFormUrl" target="_blank" rel="noopener noreferrer" class="text-[var(--color-primary)] dark:text-[var(--color-primary)] hover:underline">{{ safeCheckinFormUrl }}</a>
               </div>
 
               <div class="flex items-center justify-center space-x-2 text-xs text-[var(--color-text-secondary)]">
