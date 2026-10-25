@@ -608,7 +608,7 @@ onUnmounted(() => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
                 <label class="block text-sm font-medium text-[var(--color-text)] mb-2">{{ t('settings.sheetIdLabel') }}</label>
-                <AppInput v-model="spreadsheetId" :placeholder="t('settings.sheetIdPlaceholder')" />
+                <AppInput v-model="spreadsheetId" :placeholder="t('settings.sheetIdPlaceholder')" mono />
                 <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
                   {{ t('settings.examplePrefix') }}: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms
                 </p>

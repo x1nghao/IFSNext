@@ -36,6 +36,8 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // 字体纳入预缓存，保证 PWA 离线时 Inter/JetBrains Mono 可用
+        globPatterns: ['**/*.{js,css,html,woff2}'],
         runtimeCaching: [
           {
             // 弱网/离线兜底：/data 请求优先走网络（3 秒超时），失败时回退最近一次缓存

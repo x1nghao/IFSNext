@@ -1,3 +1,8 @@
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-600.css";
+@import "@fontsource/inter/latin-700.css";
+@import "@fontsource/jetbrains-mono/latin-400.css";
 @import "tailwindcss";
 
 /* 基于 .dark class 的暗色变体：配合应用内手动外观切换（自动/浅色/深色） */
@@ -87,6 +92,15 @@
 
     accent-color: var(--color-primary);
     color-scheme: light dark;
+
+    /* 等宽字体：标识符（表格 ID 等）专用，要求 0/O、1/l/I 可区分 */
+    --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* 标识符等宽字体 */
+.font-id {
+    font-family: var(--font-mono);
+    letter-spacing: 0.01em;
 }
 
 html.dark {
@@ -126,7 +140,7 @@ html.dark {
 
 /* ═══ 背景：单一色相、近乎实色，为悬浮玻璃层提供干净的衬托 ═══ */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
     background: #f2f6f7;
     color: var(--color-text);
     -webkit-font-smoothing: antialiased;
@@ -304,7 +318,7 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
 .faction-tag {
     width: fit-content;
     font-size: 10px;
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-family: var(--font-mono);
     padding: 2px 7px;
     border-radius: 6px;
 }
