@@ -291,7 +291,12 @@ html.dark .ifs-tab.is-active {
 .tabbar-space { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
 
 /* ═══ Agent 紧凑行列表 ═══ */
-.agent-list { display: flex; flex-direction: column; overflow: hidden; }
+/* 多栏自适应：窄屏单栏，宽屏自动 2~3 栏（栏间发丝分隔线） */
+.agent-list {
+    columns: 23rem 3;
+    column-gap: 40px;
+    column-rule: 1px solid var(--color-separator);
+}
 .agent-row {
     display: flex;
     align-items: center;
@@ -299,6 +304,7 @@ html.dark .ifs-tab.is-active {
     gap: 10px 14px;
     flex-wrap: wrap;
     padding: 12px 14px;
+    break-inside: avoid;
     transition: background-color 0.15s ease;
 }
 .agent-row:hover { background: rgba(255, 255, 255, 0.22); }
