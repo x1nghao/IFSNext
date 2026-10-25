@@ -326,7 +326,17 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.05); }
     color: var(--color-text-secondary);
     font-variant-numeric: tabular-nums;
     min-width: 76px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px;
     text-align: right;
+}
+.ap-delta {
+    width: 11px;
+    height: 11px;
+    flex: none;
+    margin-top: 1px;
 }
 .agent-row-ap.is-negative { color: var(--color-danger); font-weight: 600; }
 .agent-row-time { font-size: 11px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }

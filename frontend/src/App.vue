@@ -767,7 +767,12 @@ onUnmounted(() => {
                     <span class="faction-tag" :class="agent.AgentFaction === 'Resistance' ? 'is-resistance' : (agent.AgentFaction === 'Enlightened' ? 'is-enlightened' : '')">{{ agent.AgentFaction }}</span>
                   </div>
                   <div class="agent-row-side">
-                    <span class="agent-row-ap" :class="{ 'is-negative': Number(agent.APdiff) < 0 }">ΔAP {{ agent.APdiff ?? '—' }}</span>
+                    <span class="agent-row-ap" :class="{ 'is-negative': Number(agent.APdiff) < 0 }">
+                      <svg class="ap-delta" viewBox="0 0 12 12" aria-hidden="true">
+                        <path d="M6 1.6 10.9 10.4 H1.1 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                      </svg>
+                      <span>AP {{ agent.APdiff ?? '—' }}</span>
+                    </span>
                     <span class="status-badge" :class="agent.PV === 'TRUE' ? 'is-checked' : 'is-unchecked'">
                       {{ t(agent.PV === 'TRUE' ? 'status.checkedIn' : 'status.notCheckedIn') }}
                     </span>
