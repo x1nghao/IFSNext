@@ -36,7 +36,7 @@ IFSNext 是一个旨在辅助 Ingress 游戏中的 Ingress First Saturday (IFS) 
 ## 🚀 快速开始 (前端)
 
 ### 环境要求
-*   Node.js 22+（测试使用 Node 原生 type-stripping 运行 TypeScript）
+*   Node.js 26（本地与 CI 验证版本；测试使用 Node 原生 type-stripping 运行 TypeScript）
 *   npm
 
 ### 安装依赖
