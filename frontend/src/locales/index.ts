@@ -43,11 +43,11 @@ export const messages = {
     status: { checkedIn: '已签到', notCheckedIn: '未签到' },
     actions: { check: '签到', uncheck: '撤销' },
     csv: {
-      export: '导出 CSV',
       noData: '暂无数据可导出',
       exported: '已导出 {n} 条记录',
       col: { name: 'Agent', faction: '阵营', ap: 'ΔAP', status: '签到状态', modifiedAt: '本地修改时间' }
     },
+    data: { title: '数据', export: '导出原始数据', hint: '将当前名单（含排序与筛选结果）导出为 CSV 文件' },
     list: { countPrefix: '共', countSuffix: '人' },
     saving: '保存中...',
     saveSettings: '保存',
@@ -97,11 +97,11 @@ export const messages = {
     status: { checkedIn: 'Checked In', notCheckedIn: 'Not Checked In' },
     actions: { check: 'Check In', uncheck: 'Undo' },
     csv: {
-      export: 'Export CSV',
       noData: 'No data to export',
       exported: 'Exported {n} records',
       col: { name: 'Agent', faction: 'Faction', ap: 'ΔAP', status: 'Status', modifiedAt: 'Modified At' }
     },
+    data: { title: 'Data', export: 'Export Raw Data', hint: 'Export the current roster (with sorting and filtering applied) as a CSV file' },
     list: { countPrefix: 'Total', countSuffix: '' },
     saving: 'Saving...',
     saveSettings: 'Save',
@@ -151,11 +151,11 @@ export const messages = {
     status: { checkedIn: '已簽到', notCheckedIn: '未簽到' },
     actions: { check: '簽到', uncheck: '撤銷' },
     csv: {
-      export: '匯出 CSV',
       noData: '暫無資料可匯出',
       exported: '已匯出 {n} 筆資料',
       col: { name: 'Agent', faction: '陣營', ap: 'ΔAP', status: '簽到狀態', modifiedAt: '修改時間' }
     },
+    data: { title: '資料', export: '匯出原始資料', hint: '將目前名單（含排序與篩選結果）匯出為 CSV 檔案' },
     list: { countPrefix: '共', countSuffix: '人' },
     saving: '儲存中...',
     saveSettings: '儲存',

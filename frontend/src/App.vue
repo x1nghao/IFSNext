@@ -652,6 +652,16 @@ onUnmounted(() => {
                 </span>
               </div>
             </div>
+            <!-- 数据导出 -->
+            <div class="mt-6">
+              <h3 class="text-md font-medium text-[var(--color-text)]">{{ t('data.title') }}</h3>
+              <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ t('data.hint') }}</p>
+              <div class="mt-3">
+                <AppButton @click="exportCsv" variant="secondary" :disabled="!sortedAgents.length">
+                  {{ t('data.export') }}
+                </AppButton>
+              </div>
+            </div>
             <!-- 操作按钮 -->
             <div class="flex space-x-4 mt-4">
               <AppButton @click="saveSettings" :loading="saving" class="transition-all duration-200 hover:scale-105 active:scale-95">
@@ -790,17 +800,11 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- 底部：总数与导出 -->
-            <div class="flex items-center justify-between mt-4">
+            <!-- 显示总数 -->
+            <div class="flex justify-end mt-4">
               <span class="text-sm text-[var(--color-text-secondary)]">
                 {{ t('list.countPrefix') }} {{ filteredAgents.length }} {{ t('list.countSuffix') }}
               </span>
-              <button v-if="sortedAgents.length" @click="exportCsv" class="export-link">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"></path>
-                </svg>
-                {{ t('csv.export') }}
-              </button>
             </div>
           </div>
         </div>

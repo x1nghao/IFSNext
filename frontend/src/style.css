@@ -345,19 +345,6 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
 }
 .agent-row-time { font-size: 11px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
 
-/* 列表底部的低频导出入口：安静的文字按钮 */
-.export-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--color-text-secondary);
-    transition: color 0.15s ease;
-}
-.export-link:hover { color: var(--color-primary); }
-.export-link:active { transform: scale(0.97); }
-
 .status-badge {
     font-size: 10px;
     font-weight: 600;
