@@ -124,11 +124,11 @@ const installPWA = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const choice = await deferredPrompt.userChoice;
-    addLog(`安装选择: ${choice.outcome}`);
+    addLog(choice.outcome === 'accepted' ? '已同意安装' : '已取消安装');
     deferredPrompt = null;
     canInstall.value = false;
   } catch (e: any) {
-    addError(`安装失败: ${e.message}`);
+    addError(`安装失败：${e.message}`);
   }
 };
 
@@ -147,6 +147,13 @@ const setSort = (key: string) => {
 };
 
 const sortedAgents = computed(() => sortAgents(filteredAgents.value, sortKey.value, sortOrder.value));
+
+const emptyHint = computed(() => {
+  if (agents.value.length > 0 && searchQuery.value) {
+    return t('empty.noMatch', { q: searchQuery.value });
+  }
+  return t('empty.hint');
+});
 
 const agentStats = computed(() => computeAgentStats(agents.value));
 const checkedPercent = computed(() =>
@@ -202,7 +209,7 @@ const generateQRCode = async () => {
         errorCorrectionLevel: 'H'
       });
     } catch (err: any) {
-      addError(`二维码生成失败: ${err.message}`);
+      addError(`二维码生成失败：${err.message}`);
     }
   }
 };
@@ -288,7 +295,7 @@ watch([spreadsheetId, apiBaseUrl, checkinFormUrl], ([sid, base, url]) => {
       checkinFormUrl: url || ''
     }));
   } catch (e: any) {
-    addError(`自动保存设置失败: ${e.message}`);
+      addError(`设置自动保存失败：${e.message}`);
   }
 });
 
@@ -309,7 +316,7 @@ const saveSettings = async () => {
       }));
       addLog('设置已保存');
     } catch (e: any) {
-      addError(`设置保存失败: ${e.message}`);
+      addError(`设置保存失败：${e.message}`);
     }
   } finally {
     saving.value = false;
@@ -326,7 +333,7 @@ const loadSettings = () => {
       checkinFormUrl.value = settings.checkinFormUrl || '';
     }
   } catch (e: any) {
-    addError(`读取设置失败: ${e.message}`);
+      addError(`读取设置失败：${e.message}`);
   }
   
   if (spreadsheetId.value && agents.value.length === 0) {
@@ -336,7 +343,7 @@ const loadSettings = () => {
 
 const loadData = async (useCache = false, silent = false) => {
   if (!spreadsheetId.value) {
-    addError('请输入表格ID');
+    addError('请先在设置中填写表格 ID');
     return;
   }
   if (useCache && cachedData.value.length > 0 && lastUpdateTime.value) {
@@ -349,7 +356,7 @@ const loadData = async (useCache = false, silent = false) => {
   }
   if (!silent) {
     loading.value = true;
-    addLog('开始通过Agent加载数据...');
+    addLog('开始加载名单数据');
   }
   try {
     if (!isSafeHttpUrl(apiBaseUrl.value)) {
@@ -370,12 +377,12 @@ const loadData = async (useCache = false, silent = false) => {
       agents.value = data;
       cachedData.value = [...data];
       lastUpdateTime.value = Date.now();
-      addLog(`加载 ${data.length} 条数据`);
+      addLog(`已加载 ${data.length} 名 Agent`);
     } else {
       throw new Error('API返回的数据格式不正确');
     }
   } catch (error: any) {
-    addError(`数据加载失败: ${error.message}。请检查API地址(${apiBaseUrl.value})与网络连接。`);
+    addError(`数据加载失败：${error.message}。请检查 API 地址与网络连接。`);
     console.error('API调用错误:', error);
   } finally {
     if (!silent) {
@@ -401,7 +408,7 @@ const toggleVerification = async (agent: Agent) => {
   }
 
   verificationLoadingMap.value[agent.AgentName] = true;
-  addLog(`正在${agent.PV === 'TRUE' ? '取消' : ''}验证 ${agent.AgentName}`);
+    addLog(agent.PV === 'TRUE' ? `正在撤销 ${agent.AgentName} 的签到` : `正在为 ${agent.AgentName} 签到`);
   const originalStatus = agent.PV;
   const newStatus = agent.PV === 'TRUE' ? 'FALSE' : 'TRUE';
   
@@ -426,9 +433,9 @@ const toggleVerification = async (agent: Agent) => {
     }
     const result = await response.json();
     if (result.status === 'success') {
-      addLog(`${agent.AgentName} 验证状态已${originalStatus === 'TRUE' ? '取消' : '通过'}`);
+      addLog(originalStatus === 'TRUE' ? `${agent.AgentName} 已撤销签到` : `${agent.AgentName} 签到成功`);
     } else {
-      throw new Error(result.message || '验证操作失败');
+      throw new Error(result.message || '签到操作失败');
     }
   } catch (error: any) {
     agent.PV = originalStatus;
@@ -437,8 +444,8 @@ const toggleVerification = async (agent: Agent) => {
     }
     // 回滚乐观更新时记录的修改时间，避免显示从未生效的时间戳
     removeAgentModifiedTimeEntry(spreadsheetId.value, agent.AgentName);
-    addError(`验证操作失败: ${error.message}`);
-    console.error('验证API调用错误:', error);
+    addError(`签到操作失败：${error.message}`);
+    console.error('签到 API 调用错误:', error);
   } finally {
     verificationLoadingMap.value[agent.AgentName] = false;
   }
@@ -446,7 +453,7 @@ const toggleVerification = async (agent: Agent) => {
 
 const clearSearch = () => {
   searchQuery.value = '';
-  addLog('已清除搜索条件');
+  addLog('已清除搜索');
 };
 
 const exportCsv = () => {
@@ -486,7 +493,7 @@ watch(spreadsheetId, (newVal) => {
   const extracted = extractSpreadsheetId(newVal);
   if (extracted) {
     spreadsheetId.value = extracted;
-    addLog('已自动从链接提取表格ID');
+    addLog('已从链接提取表格 ID');
   }
 });
 
@@ -515,9 +522,9 @@ const setAutoRefresh = (mode: string) => {
       isRefreshing.value = true;
       try {
         await loadData(false, true);
-        addLog(`自动刷新完成 (${mode}模式)`);
+        addLog('自动刷新完成');
       } catch (error: any) {
-        addError(`自动刷新失败: ${error.message}`);
+        addError(`自动刷新失败：${error.message}`);
       } finally {
         isRefreshing.value = false;
       }
@@ -567,7 +574,7 @@ onMounted(() => {
     e.preventDefault();
     deferredPrompt = e;
     canInstall.value = true;
-    addLog('可安装为PWA应用');
+    addLog('可将应用安装到主屏幕');
   });
 
   window.addEventListener('online', handleOnline);
@@ -825,7 +832,7 @@ onUnmounted(() => {
                 </svg>
               </div>
               <p class="title-text text-[var(--color-text)]">{{ t('empty.title') }}</p>
-              <p class="text-xs text-[var(--color-text-secondary)] mt-1">{{ t('empty.hint') }}</p>
+              <p class="text-xs text-[var(--color-text-secondary)] mt-1">{{ emptyHint }}</p>
             </div>
 
             <!-- 名单紧凑行 -->
