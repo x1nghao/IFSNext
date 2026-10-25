@@ -23,6 +23,15 @@ export const messages = {
       refreshing: '刷新中...'
     },
     search: { placeholder: '搜索 Agent...' },
+    stats: {
+      total: '总人数',
+      checkedIn: '已签到',
+      resistance: '抵抗军',
+      enlightened: '启蒙军',
+      secondsAgo: '更新于 {n} 秒前',
+      minutesAgo: '更新于 {n} 分钟前',
+      clock: '更新于 {time}'
+    },
     sort: { name: '名称', faction: '阵营', ap: 'AP', status: '状态' },
     loading: '加载中...',
     refreshing: '刷新中...',
@@ -66,6 +75,15 @@ export const messages = {
       refreshing: 'Refreshing...'
     },
     search: { placeholder: 'Search Agent...' },
+    stats: {
+      total: 'Total',
+      checkedIn: 'Checked In',
+      resistance: 'Resistance',
+      enlightened: 'Enlightened',
+      secondsAgo: 'Updated {n}s ago',
+      minutesAgo: 'Updated {n}m ago',
+      clock: 'Updated {time}'
+    },
     sort: { name: 'Name', faction: 'Faction', ap: 'AP', status: 'Status' },
     loading: 'Loading...',
     refreshing: 'Refreshing...',
@@ -109,6 +127,15 @@ export const messages = {
       refreshing: '重新整理中...'
     },
     search: { placeholder: '搜尋 Agent...' },
+    stats: {
+      total: '總人數',
+      checkedIn: '已簽到',
+      resistance: '抵抗軍',
+      enlightened: '啟蒙軍',
+      secondsAgo: '更新於 {n} 秒前',
+      minutesAgo: '更新於 {n} 分鐘前',
+      clock: '更新於 {time}'
+    },
     sort: { name: '名稱', faction: '陣營', ap: 'AP', status: '狀態' },
     loading: '載入中...',
     refreshing: '重新整理中...',

@@ -7,7 +7,8 @@ import AppInput from '@/components/ui/AppInput.vue';
 import AppCard from '@/components/ui/AppCard.vue';
 import AppSegmentedControl from '@/components/ui/AppSegmentedControl.vue';
 import type { Agent, Log } from '@/types';
-import { extractSpreadsheetId, filterAgents, sortAgents } from '@/utils/agents';
+import { extractSpreadsheetId, filterAgents, sortAgents, computeAgentStats } from '@/utils/agents';
+import { formatRelativeTime } from '@/utils/time';
 import {
   addAgentModifiedTime,
   parseAgentModifiedAt,
@@ -128,6 +129,48 @@ const setSort = (key: string) => {
 };
 
 const sortedAgents = computed(() => sortAgents(filteredAgents.value, sortKey.value, sortOrder.value));
+
+const agentStats = computed(() => computeAgentStats(agents.value));
+const checkedPercent = computed(() =>
+  agentStats.value.total ? Math.round((agentStats.value.checkedIn / agentStats.value.total) * 100) : 0
+);
+
+// 「更新于 x 前」文案：nowTick 每 10 秒推进一次以驱动重算
+const VIEW_PREFS_STORAGE_KEY = 'ifsnext_view_prefs';
+const nowTick = ref(Date.now());
+let nowTickTimer: ReturnType<typeof setInterval> | null = null;
+const lastUpdateText = computed(() => {
+  if (!lastUpdateTime.value) return '';
+  const result = formatRelativeTime(lastUpdateTime.value, nowTick.value);
+  if (result.kind === 'seconds') return t('stats.secondsAgo', { n: result.n });
+  if (result.kind === 'minutes') return t('stats.minutesAgo', { n: result.n });
+  return t('stats.clock', { time: result.text });
+});
+
+const loadViewPrefs = () => {
+  try {
+    const raw = localStorage.getItem(VIEW_PREFS_STORAGE_KEY);
+    if (!raw) return;
+    const prefs = JSON.parse(raw);
+    const SORT_KEYS = ['AgentName', 'AgentFaction', 'APdiff', 'PV'];
+    if (SORT_KEYS.includes(prefs.sortKey)) sortKey.value = prefs.sortKey;
+    if (prefs.sortOrder === 'asc' || prefs.sortOrder === 'desc') sortOrder.value = prefs.sortOrder;
+    if (['off', 'slow', 'medium', 'fast'].includes(prefs.autoRefreshMode)) {
+      autoRefreshMode.value = prefs.autoRefreshMode;
+      if (prefs.autoRefreshMode !== 'off') setAutoRefresh(prefs.autoRefreshMode);
+    }
+  } catch (e) {}
+};
+
+watch([sortKey, sortOrder, autoRefreshMode], () => {
+  try {
+    localStorage.setItem(VIEW_PREFS_STORAGE_KEY, JSON.stringify({
+      sortKey: sortKey.value,
+      sortOrder: sortOrder.value,
+      autoRefreshMode: autoRefreshMode.value,
+    }));
+  } catch (e) {}
+});
 
 const generateQRCode = async () => {
   if (qrcodeCanvas.value && safeCheckinFormUrl.value) {
@@ -401,6 +444,7 @@ const setAutoRefresh = (mode: string) => {
     default: addLog('自动刷新已关闭'); return;
   }
   autoRefreshTimer.value = setInterval(async () => {
+    if (currentView.value !== 'operations') return; // 非操作页不刷新
     if (!isRefreshing.value && !loading.value) {
       isRefreshing.value = true;
       try {
@@ -421,6 +465,10 @@ const cleanup = () => {
   if (autoRefreshTimer.value) {
     clearInterval(autoRefreshTimer.value);
     autoRefreshTimer.value = null;
+  }
+  if (nowTickTimer) {
+    clearInterval(nowTickTimer);
+    nowTickTimer = null;
   }
 };
 
@@ -444,6 +492,8 @@ onMounted(() => {
   }
   loadSettings();
   loadAgentModifiedAt();
+  loadViewPrefs();
+  nowTickTimer = setInterval(() => { nowTick.value = Date.now(); }, 10_000);
   addLog('应用初始化完成');
   
   // PWA Install Prompt
@@ -612,6 +662,35 @@ onUnmounted(() => {
                    <span v-if="active">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
                 </template>
               </AppSegmentedControl>
+            </div>
+
+            <!-- 签到进度统计 -->
+            <div v-if="agentStats.total" class="mt-4 rounded-[12px] bg-[var(--color-control-bg)] dark:bg-[var(--color-control-bg-dark)] p-3">
+              <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span class="font-medium text-[var(--color-text)]">{{ t('stats.total') }} {{ agentStats.total }}</span>
+                <span class="font-medium text-[var(--color-text)] tabular-nums">{{ t('stats.checkedIn') }} {{ agentStats.checkedIn }}/{{ agentStats.total }}（{{ checkedPercent }}%）</span>
+                <span v-if="lastUpdateText" class="text-xs text-[var(--color-text-secondary)] tabular-nums">{{ lastUpdateText }}</span>
+              </div>
+              <div v-if="agentStats.resistance || agentStats.enlightened" class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                <div v-if="agentStats.resistance">
+                  <div class="flex justify-between text-xs mb-1 text-[var(--color-resistance-text)]">
+                    <span>{{ t('stats.resistance') }}</span>
+                    <span class="tabular-nums">{{ agentStats.resistanceCheckedIn }}/{{ agentStats.resistance }}</span>
+                  </div>
+                  <div class="h-1.5 rounded-full bg-[var(--color-control-bg-strong)] dark:bg-[var(--color-control-bg-strong-dark)] overflow-hidden">
+                    <div class="h-full rounded-full bg-[var(--color-resistance)] transition-all duration-500" :style="{ width: (agentStats.resistanceCheckedIn / agentStats.resistance * 100) + '%' }"></div>
+                  </div>
+                </div>
+                <div v-if="agentStats.enlightened">
+                  <div class="flex justify-between text-xs mb-1 text-[var(--color-enlightened-text)]">
+                    <span>{{ t('stats.enlightened') }}</span>
+                    <span class="tabular-nums">{{ agentStats.enlightenedCheckedIn }}/{{ agentStats.enlightened }}</span>
+                  </div>
+                  <div class="h-1.5 rounded-full bg-[var(--color-control-bg-strong)] dark:bg-[var(--color-control-bg-strong-dark)] overflow-hidden">
+                    <div class="h-full rounded-full bg-[var(--color-enlightened)] transition-all duration-500" :style="{ width: (agentStats.enlightenedCheckedIn / agentStats.enlightened * 100) + '%' }"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

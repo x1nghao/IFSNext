@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strictEqual, deepStrictEqual, notStrictEqual } from 'node:assert/strict';
-import { extractSpreadsheetId, filterAgents, sortAgents, getSortValue } from './agents.ts';
+import { extractSpreadsheetId, filterAgents, sortAgents, getSortValue, computeAgentStats } from './agents.ts';
 import type { Agent } from '../types';
 
 const makeAgent = (overrides: Partial<Agent>): Agent => ({
@@ -75,4 +75,32 @@ test('sortAgents 不修改原数组', () => {
   const agents = [makeAgent({ AgentName: 'B', APdiff: 2 }), makeAgent({ AgentName: 'A', APdiff: 1 })];
   sortAgents(agents, 'APdiff', 'asc');
   deepStrictEqual(agents.map(a => a.AgentName), ['B', 'A']);
+});
+
+test('computeAgentStats 统计总数、签到数与分阵营进度', () => {
+  const agents = [
+    makeAgent({ AgentName: 'R1', AgentFaction: 'Resistance', PV: 'TRUE' }),
+    makeAgent({ AgentName: 'R2', AgentFaction: 'Resistance', PV: 'FALSE' }),
+    makeAgent({ AgentName: 'E1', AgentFaction: 'Enlightened', PV: 'TRUE' }),
+    makeAgent({ AgentName: 'X1', AgentFaction: 'Unknown', PV: 'TRUE' }),
+  ];
+  deepStrictEqual(computeAgentStats(agents), {
+    total: 4,
+    checkedIn: 3,
+    resistance: 2,
+    resistanceCheckedIn: 1,
+    enlightened: 1,
+    enlightenedCheckedIn: 1,
+  });
+});
+
+test('computeAgentStats 空名单', () => {
+  deepStrictEqual(computeAgentStats([]), {
+    total: 0,
+    checkedIn: 0,
+    resistance: 0,
+    resistanceCheckedIn: 0,
+    enlightened: 0,
+    enlightenedCheckedIn: 0,
+  });
 });
