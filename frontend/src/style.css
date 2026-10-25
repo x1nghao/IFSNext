@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* 基于 .dark class 的暗色变体：配合应用内手动外观切换（自动/浅色/深色） */
+@custom-variant dark (&:where(.dark, .dark *));
+
 [v-cloak] { visibility: hidden; }
 .fade-enter-active, .fade-leave-active {
     transition: opacity 0.3s ease;
@@ -13,43 +16,40 @@
     #app { min-height: 100dvh; }
 }
 
-/* Modern iOS-like & Glassmorphism Variables */
+/* ═══ Liquid Glass 设计令牌 ═══ */
 :root {
-    --color-primary: #32acb6;
-    --color-primary-strong: #206f75;
-    --color-primary-soft: rgba(50, 172, 182, 0.16);
+    --color-primary: #14a3ae;
+    --color-primary-strong: #0d7d87;
+    --color-primary-soft: rgba(20, 163, 174, 0.18);
 
-    --color-focus-ring: rgba(50, 172, 182, 0.35);
-    
-    /* Glassmorphism Colors */
-    --color-titlebar: #32acb6;
-    --color-titlebar-dark: #206f75;
-    
-    /* Backgrounds */
-    --color-bg: #F2F2F7; /* iOS System Grouped Background */
-    --color-bg-dark: #000000;
-    
-    /* Cards */
-    --color-card-bg: rgba(255, 255, 255, 0.8);
-    --color-card-bg-dark: rgba(28, 28, 30, 0.8);
+    --color-focus-ring: rgba(20, 163, 174, 0.4);
 
-    --color-control-bg: rgba(118, 118, 128, 0.12);
-    --color-control-bg-strong: rgba(118, 118, 128, 0.2);
-    --color-control-bg-dark: rgba(118, 118, 128, 0.24);
-    --color-control-bg-strong-dark: rgba(118, 118, 128, 0.32);
-    
-    --color-separator: rgba(60, 60, 67, 0.18);
-    --color-text: #000000;
-    --color-text-secondary: #8E8E93;
+    /* 玻璃表面 */
+    --color-card-bg: rgba(255, 255, 255, 0.46);
+    --color-card-bg-dark: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.55);
+    --glass-border-dark: rgba(255, 255, 255, 0.14);
+    --glass-shine: rgba(255, 255, 255, 0.9);
+    --glass-shine-dark: rgba(255, 255, 255, 0.3);
 
-    --color-success: #34C759;
-    --color-warning: #FF9500;
-    --color-danger: #FF3B30;
+    --color-control-bg: rgba(255, 255, 255, 0.42);
+    --color-control-bg-strong: rgba(255, 255, 255, 0.62);
+    --color-control-bg-dark: rgba(255, 255, 255, 0.08);
+    --color-control-bg-strong-dark: rgba(255, 255, 255, 0.14);
 
-    --color-success-badge-bg: #166534;
-    --color-success-badge-text: #FFFFFF;
-    --color-danger-badge-bg: rgba(255, 59, 48, 0.14);
-    --color-danger-badge-text: #991b1b;
+    --color-separator: rgba(13, 42, 48, 0.12);
+    --color-text: #0d2429;
+    --color-text-secondary: #55707a;
+    --color-bg: #eef6f7;
+
+    --color-success: #2fae62;
+    --color-warning: #f59e0b;
+    --color-danger: #ff453a;
+
+    --color-success-badge-bg: rgba(47, 174, 98, 0.16);
+    --color-success-badge-text: #0f6b37;
+    --color-danger-badge-bg: rgba(255, 69, 58, 0.14);
+    --color-danger-badge-text: #b3231b;
 
     --color-resistance: #2563eb;
     --color-resistance-bg: rgba(37, 99, 235, 0.14);
@@ -57,44 +57,55 @@
     --color-enlightened: #16a34a;
     --color-enlightened-bg: rgba(22, 163, 74, 0.14);
     --color-enlightened-text: #15803d;
-    
-    /* Shadows */
-    --shadow-ios: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
-    --shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.08);
-    --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
-    
+
+    /* 行内动作按钮胶囊 */
+    --action-resistance-bg: rgba(37, 99, 235, 0.16);
+    --action-resistance-text: #1d4ed8;
+    --action-enlightened-bg: rgba(22, 163, 74, 0.16);
+    --action-enlightened-text: #15803d;
+
+    /* 阴影 */
+    --shadow-glass: 0 12px 36px rgba(9, 60, 72, 0.14);
+    --shadow-hover: 0 16px 44px rgba(9, 60, 72, 0.2);
+    --shadow-ios: 0 2px 10px rgba(9, 60, 72, 0.08);
+
     --radius-ios: 14px;
-    --radius-card: 16px;
+    --radius-card: 22px;
     --tap-size: 44px;
     --font-title: 20px;
     --font-body: 16px;
     --font-caption: 13px;
 
-    --color-ios-blue-start: var(--color-primary);
-    --color-ios-blue-end: var(--color-primary-strong);
-
     accent-color: var(--color-primary);
     color-scheme: light dark;
 }
-@media (prefers-color-scheme: dark) {
-    :root {
-        --color-text: #FFFFFF;
-        --color-text-secondary: #98989D;
-        --color-separator: rgba(84, 84, 88, 0.36);
-        --shadow-ios: 0 2px 8px rgba(0, 0, 0, 0.3);
-        --color-focus-ring: rgba(50, 172, 182, 0.35);
 
-        --color-success-badge-bg: rgba(20, 83, 45, 0.72);
-        --color-danger-badge-bg: rgba(127, 29, 29, 0.6);
-        --color-danger-badge-text: rgba(255, 226, 226, 0.95);
+html.dark {
+    --color-bg: #0c2229;
+    --color-separator: rgba(255, 255, 255, 0.12);
+    --color-text: #ecf4f5;
+    --color-text-secondary: #93aeb4;
 
-        --color-resistance: rgba(147, 197, 253, 0.95);
-        --color-resistance-bg: rgba(30, 58, 138, 0.55);
-        --color-resistance-text: rgba(191, 219, 254, 0.95);
-        --color-enlightened: rgba(134, 239, 172, 0.95);
-        --color-enlightened-bg: rgba(20, 83, 45, 0.55);
-        --color-enlightened-text: rgba(187, 247, 208, 0.95);
-    }
+    --color-success-badge-bg: rgba(85, 217, 141, 0.16);
+    --color-success-badge-text: #7ff0ae;
+    --color-danger-badge-bg: rgba(255, 105, 97, 0.16);
+    --color-danger-badge-text: #ffb3ae;
+
+    --color-resistance: rgba(147, 197, 253, 0.95);
+    --color-resistance-bg: rgba(30, 58, 138, 0.5);
+    --color-resistance-text: rgba(191, 219, 254, 0.95);
+    --color-enlightened: rgba(134, 239, 172, 0.95);
+    --color-enlightened-bg: rgba(20, 83, 45, 0.5);
+    --color-enlightened-text: rgba(187, 247, 208, 0.95);
+
+    --action-resistance-bg: rgba(96, 165, 250, 0.2);
+    --action-resistance-text: rgba(191, 219, 254, 0.98);
+    --action-enlightened-bg: rgba(74, 222, 128, 0.18);
+    --action-enlightened-text: rgba(187, 247, 208, 0.98);
+
+    --shadow-glass: 0 12px 36px rgba(0, 0, 0, 0.4);
+    --shadow-hover: 0 16px 44px rgba(0, 0, 0, 0.5);
+    --shadow-ios: 0 2px 10px rgba(0, 0, 0, 0.25);
 }
 
 .title-text { font-size: var(--font-title); font-weight: 700; letter-spacing: -0.02em; }
@@ -102,31 +113,63 @@
 .caption-text { font-size: var(--font-caption); color: var(--color-text-secondary); }
 .tap-target { min-width: var(--tap-size); min-height: var(--tap-size); }
 
-/* iOS组件增强 */
+/* ═══ 极光玻璃背景（固定层，滚动不跟随） ═══ */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
-    background: var(--color-bg);
+    background: #e8f3f5;
     color: var(--color-text);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
 }
-.dark body {
-    background: var(--color-bg-dark);
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(90% 52% at 8% 0%, rgba(122, 215, 224, 0.5), transparent 60%),
+        radial-gradient(72% 46% at 92% 4%, rgba(126, 224, 168, 0.42), transparent 55%),
+        radial-gradient(95% 55% at 50% 108%, rgba(74, 168, 255, 0.36), transparent 62%),
+        linear-gradient(170deg, #eaf5f6, #e2eff1 55%, #e9f2f4);
+}
+html.dark body { background: #051a20; }
+html.dark body::before {
+    background:
+        radial-gradient(90% 52% at 8% 0%, rgba(24, 118, 134, 0.5), transparent 60%),
+        radial-gradient(72% 46% at 92% 4%, rgba(24, 122, 76, 0.38), transparent 55%),
+        radial-gradient(95% 55% at 50% 108%, rgba(28, 88, 178, 0.42), transparent 62%),
+        linear-gradient(170deg, #07202a, #051a23 55%, #06202a);
 }
 
+/* ═══ 玻璃表面 ═══ */
 .card {
+    position: relative;
     background: var(--color-card-bg);
-    border: 1px solid rgba(255, 255, 255, 0.55);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow-ios);
-    backdrop-filter: saturate(180%) blur(18px);
-    -webkit-backdrop-filter: saturate(180%) blur(18px);
+    box-shadow: var(--shadow-glass);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
 }
-.dark .card {
+html.dark .card {
     background: var(--color-card-bg-dark);
-    border-color: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+    border-color: var(--glass-border-dark);
+}
+/* 玻璃 signature：顶缘高光 */
+.card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-shine), transparent);
+    pointer-events: none;
+}
+html.dark .card::before {
+    background: linear-gradient(90deg, transparent, var(--glass-shine-dark), transparent);
 }
 
 .app-select {
@@ -146,67 +189,202 @@ body {
     background: var(--color-control-bg-strong);
 }
 .app-select:focus {
-    background: var(--color-bg);
     box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
-.dark .app-select {
+html.dark .app-select {
     background: var(--color-control-bg-dark);
     color: var(--color-text);
 }
-.dark .app-select:hover {
+html.dark .app-select:hover {
     background: var(--color-control-bg-strong-dark);
 }
-.dark .app-select:focus {
-    background: rgba(55, 55, 60, 0.85);
+
+/* ═══ 浮动玻璃顶栏 ═══ */
+.ifs-topbar {
+    position: sticky;
+    top: calc(10px + env(safe-area-inset-top));
+    z-index: 50;
+    padding: 0 12px;
+    margin-bottom: 6px;
+}
+.ifs-topbar-inner {
+    max-width: 80rem;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px 8px 20px;
+    border-radius: 999px;
+    background: var(--color-card-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: inset 0 1.5px 0 var(--glass-shine), var(--shadow-glass);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+}
+html.dark .ifs-topbar-inner {
+    background: var(--color-card-bg-dark);
+    border-color: var(--glass-border-dark);
+    box-shadow: inset 0 1.5px 0 var(--glass-shine-dark), var(--shadow-glass);
+}
+.ifs-iconbtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-control-bg);
+    color: var(--color-text);
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.ifs-iconbtn:hover { background: var(--color-control-bg-strong); }
+html.dark .ifs-iconbtn { background: var(--color-control-bg-dark); }
+html.dark .ifs-iconbtn:hover { background: var(--color-control-bg-strong-dark); }
+
+/* ═══ 浮动玻璃底部 Tab 栏 ═══ */
+.ifs-tabbar {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    z-index: 50;
+    display: flex;
+    gap: 4px;
+    padding: 5px;
+    border-radius: 999px;
+    background: var(--color-card-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: inset 0 1.5px 0 var(--glass-shine), var(--shadow-glass);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+}
+html.dark .ifs-tabbar {
+    background: var(--color-card-bg-dark);
+    border-color: var(--glass-border-dark);
+    box-shadow: inset 0 1.5px 0 var(--glass-shine-dark), var(--shadow-glass);
+}
+.ifs-tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.ifs-tab.is-active {
+    color: var(--color-text);
+    font-weight: 600;
+    background: var(--color-control-bg-strong);
+    box-shadow: inset 0 0 0 1px var(--glass-border), inset 0 1px 0 var(--glass-shine);
+}
+html.dark .ifs-tab.is-active {
+    background: var(--color-control-bg-strong-dark);
+    box-shadow: inset 0 0 0 1px var(--glass-border-dark), inset 0 1px 0 var(--glass-shine-dark);
 }
 
-.agent-card {
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    box-shadow: var(--shadow-ios);
-    backdrop-filter: saturate(180%) blur(18px);
-    -webkit-backdrop-filter: saturate(180%) blur(18px);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+/* 底部 Tab 栏占位 */
+.tabbar-space { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+
+/* ═══ Agent 紧凑行列表 ═══ */
+.agent-list { display: flex; flex-direction: column; overflow: hidden; }
+.agent-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 14px;
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    transition: background-color 0.15s ease;
 }
-.agent-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
+.agent-row:hover { background: rgba(255, 255, 255, 0.22); }
+html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.05); }
+.agent-row + .agent-row { border-top: 1px solid var(--color-separator); }
+
+.agent-row-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.agent-row-name { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-row-name.is-resistance { color: var(--color-resistance-text); }
+.agent-row-name.is-enlightened { color: var(--color-enlightened-text); }
+
+.faction-tag {
+    width: fit-content;
+    font-size: 10px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    padding: 2px 7px;
+    border-radius: 6px;
 }
-.agent-card:focus-within {
-    box-shadow: var(--shadow-hover), 0 0 0 2px var(--color-focus-ring);
+.faction-tag.is-resistance { background: var(--color-resistance-bg); color: var(--color-resistance-text); }
+.faction-tag.is-enlightened { background: var(--color-enlightened-bg); color: var(--color-enlightened-text); }
+
+.agent-row-side { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.agent-row-ap {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-variant-numeric: tabular-nums;
+    min-width: 76px;
+    text-align: right;
 }
-.dark .agent-card {
-    border-color: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+.agent-row-ap.is-negative { color: var(--color-danger); font-weight: 600; }
+.agent-row-time { font-size: 11px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+
+.status-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
 }
-.dark .agent-card:hover {
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.38);
+.status-badge.is-checked {
+    background: var(--color-success-badge-bg);
+    color: var(--color-success-badge-text);
 }
-.dark .agent-card:focus-within {
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.38), 0 0 0 2px var(--color-focus-ring);
+.status-badge.is-unchecked {
+    background: var(--color-danger-badge-bg);
+    color: var(--color-danger-badge-text);
 }
 
-/* Agent卡片底色恢复 */
-.agent-card--resistance { 
-    background: linear-gradient(135deg, rgba(239, 246, 255, 0.92), rgba(219, 234, 254, 0.78));
+.agent-action {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 999px;
+    color: var(--color-text);
+    background: var(--color-control-bg);
+    box-shadow: inset 0 0 0 1px var(--glass-border), inset 0 1px 0 var(--glass-shine);
+    transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
-.dark .agent-card--resistance { background: linear-gradient(135deg, rgba(30, 58, 138, 0.56), rgba(30, 58, 138, 0.34)); }
+.agent-action:hover { background: var(--color-control-bg-strong); }
+.agent-action:active { transform: scale(0.96); }
+html.dark .agent-action {
+    background: var(--color-control-bg-dark);
+    box-shadow: inset 0 0 0 1px var(--glass-border-dark), inset 0 1px 0 var(--glass-shine-dark);
+}
+html.dark .agent-action:hover { background: var(--color-control-bg-strong-dark); }
 
-.agent-card--resistance:hover {
-    border-color: rgba(59, 130, 246, 0.45);
-    box-shadow: var(--shadow-hover), 0 0 0 1px rgba(59, 130, 246, 0.18);
+.agent-action.action-resistance {
+    background: var(--action-resistance-bg);
+    color: var(--action-resistance-text);
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.28), inset 0 1px 0 var(--glass-shine);
+}
+.agent-action.action-enlightened {
+    background: var(--action-enlightened-bg);
+    color: var(--action-enlightened-text);
+    box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.28), inset 0 1px 0 var(--glass-shine);
+}
+.agent-action.action-primary {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(20, 163, 174, 0.4);
+}
+html.dark .agent-action.action-primary {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 14px rgba(20, 163, 174, 0.3);
 }
 
-.agent-card--enlightened { 
-    background: linear-gradient(135deg, rgba(240, 253, 244, 0.92), rgba(220, 252, 231, 0.78));
-}
-.dark .agent-card--enlightened { background: linear-gradient(135deg, rgba(20, 83, 45, 0.56), rgba(20, 83, 45, 0.34)); }
-
-.agent-card--enlightened:hover {
-    border-color: rgba(34, 197, 94, 0.42);
-    box-shadow: var(--shadow-hover), 0 0 0 1px rgba(34, 197, 94, 0.16);
-}
-
-/* 二维码内层面板（去除多余的淡紫色边框与背景） */
+/* ═══ 二维码面板 ═══ */
 .qr-panel {
     padding: 24px;
     border-radius: 16px;
@@ -220,12 +398,11 @@ body {
 }
 html.pwa, body.pwa { overscroll-behavior-y: none; }
 
-/* PWA & Mobile Optimizations */
+/* ═══ PWA & Mobile ═══ */
 body {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* Safe Area Support */
 .safe-pt {
     padding-top: env(safe-area-inset-top);
 }
@@ -233,12 +410,10 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Better touch targets */
 button, a, input, select {
     touch-action: manipulation;
 }
 
-/* Prevent selection on UI elements */
 .no-select {
     -webkit-user-select: none;
     user-select: none;

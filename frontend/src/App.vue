@@ -331,16 +331,10 @@ const loadData = async (useCache = false, silent = false) => {
 };
 
 const getActionButtonClass = (agent: Agent) => {
-  if (agent.PV === 'TRUE') {
-    return 'text-xs px-3 py-1.5 rounded-md bg-[var(--color-control-bg)] text-[var(--color-text)] hover:bg-[var(--color-control-bg-strong)] dark:bg-[var(--color-control-bg-dark)] dark:text-[var(--color-text)] dark:hover:bg-[var(--color-control-bg-strong-dark)] transition-colors duration-200 font-medium';
-  }
-  const base = 'text-xs px-3 py-1.5 rounded-md text-white shadow-md hover:shadow-lg transition-all duration-200 border border-white/40 font-medium';
-  if (agent.AgentFaction === 'Resistance') {
-    return `${base} bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500`;
-  } else if (agent.AgentFaction === 'Enlightened') {
-    return `${base} bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500`;
-  }
-  return `${base} bg-[var(--color-primary)] hover:opacity-90`;
+  if (agent.PV === 'TRUE') return '';
+  if (agent.AgentFaction === 'Resistance') return 'action-resistance';
+  if (agent.AgentFaction === 'Enlightened') return 'action-enlightened';
+  return 'action-primary';
 };
 
 const toggleVerification = async (agent: Agent) => {
@@ -535,32 +529,38 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[var(--color-bg)] dark:bg-[var(--color-bg-dark)]">
-    <!-- 导航栏 -->
-    <nav class="sticky top-0 z-50 backdrop-blur-xl bg-[var(--color-titlebar)] dark:bg-[var(--color-titlebar-dark)] text-white shadow-lg border-b border-white/10 safe-pt no-select">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex items-center">
-            <h1 class="title-text font-bold text-white">IFSNext</h1>
-          </div>
-          <div class="flex items-center space-x-4">
-            <button v-if="checkinFormUrl" @click="showQRCode = true" class="tap-target w-11 h-11 flex items-center justify-center rounded-[14px] hover:bg-white/10 text-white transition-colors duration-200" :title="t('qr.title')">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
-              </svg>
-            </button>
-            <button @click="currentView = 'settings'" :class="{ 'bg-white/10': currentView === 'settings' }" class="px-4 py-2 rounded-[10px] text-white hover:bg-white/10 tap-target transition-colors duration-200">
-              {{ t('nav.settings') }}
-            </button>
-            <button @click="currentView = 'operations'" :class="{ 'bg-white/10': currentView === 'operations' }" class="px-4 py-2 rounded-[10px] text-white hover:bg-white/10 tap-target transition-colors duration-200">
-              {{ t('nav.operations') }}
-            </button>
-            <button v-if="canInstall" @click="installPWA" class="px-4 h-[44px] rounded-[10px] bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-strong)] shadow-[0_6px_16px_rgba(50,172,182,0.35)] text-white tap-target transition-all duration-200 hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(50,172,182,0.45)] active:shadow-[0_4px_12px_rgba(50,172,182,0.28)]">
-              {{ t('nav.install') }}
-            </button>
-          </div>
+  <div class="min-h-screen">
+    <!-- 浮动玻璃顶栏 -->
+    <header class="ifs-topbar no-select">
+      <div class="ifs-topbar-inner">
+        <h1 class="text-lg font-bold tracking-tight text-[var(--color-text)]">IFSNext</h1>
+        <div class="flex items-center gap-2">
+          <button v-if="checkinFormUrl" @click="showQRCode = true" class="ifs-iconbtn" :title="t('qr.title')" :aria-label="t('qr.title')">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+            </svg>
+          </button>
+          <button v-if="canInstall" @click="installPWA" class="agent-action action-primary">
+            {{ t('nav.install') }}
+          </button>
         </div>
       </div>
+    </header>
+
+    <!-- 浮动玻璃底部导航 -->
+    <nav class="ifs-tabbar no-select" aria-label="主导航">
+      <button class="ifs-tab" :class="{ 'is-active': currentView === 'operations' }" @click="currentView = 'operations'" :aria-current="currentView === 'operations' ? 'page' : undefined">
+        <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+        </svg>
+        {{ t('nav.operations') }}
+      </button>
+      <button class="ifs-tab" :class="{ 'is-active': currentView === 'settings' }" @click="currentView = 'settings'" :aria-current="currentView === 'settings' ? 'page' : undefined">
+        <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+        </svg>
+        {{ t('nav.settings') }}
+      </button>
     </nav>
 
     <!-- 离线提示横幅 -->
@@ -569,7 +569,7 @@ onUnmounted(() => {
     </div>
 
     <!-- 主内容区域 -->
-    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 safe-pb">
+    <main class="max-w-7xl mx-auto py-4 sm:px-6 lg:px-8 tabbar-space">
       <!-- 设置页面 -->
       <div v-if="currentView === 'settings'" class="px-4 py-6 sm:px-0">
         <div class="card overflow-hidden">
@@ -758,54 +758,31 @@ onUnmounted(() => {
               <p class="text-xs text-[var(--color-text-secondary)] mt-1">{{ t('empty.hint') }}</p>
             </div>
 
-            <!-- 数据卡片栅格 -->
+            <!-- 名单紧凑行 -->
             <div v-else>
-              <!-- 卡片栅格：最多三列 -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3 gap-4 justify-items-center">
-                <div v-for="agent in sortedAgents" :key="agent.AgentName" :class="[
-                                       'agent-card w-full max-w-md p-4 transition rounded-[20px]',
-                                       agent.AgentFaction === 'Resistance' ? 'agent-card--resistance' : 'agent-card--enlightened'
-                                     ]">
-                  <div class="flex items-start justify-between">
-                    <div>
-                      <div :class="[
-                                                'text-xl font-bold truncate',
-                                                agent.AgentFaction === 'Resistance' ? 'text-[var(--color-resistance)]' : 'text-[var(--color-enlightened)]'
-                                            ]">
-                        {{ agent.AgentName }}
-                      </div>
-                      <div class="mt-2 flex items-center text-sm">
-                        <span class="inline-block w-2 h-2 rounded-full mr-2" :class="Number(agent.APdiff) >= 10000 ? 'bg-[var(--color-success)]' : 'bg-[var(--color-danger)]'"></span>
-                        <span :class="['text-[var(--color-text-secondary)] tabular-nums', (Number(agent.APdiff) < 0) ? 'text-[var(--color-danger)] font-semibold' : ((Number(agent.APdiff) > 0 && Number(agent.APdiff) < 10000) ? 'text-[var(--color-warning)] font-semibold' : '')]">ΔAP: {{ agent.APdiff }}</span>
-                      </div>
-                    </div>
-                    <span :class="[
-                                            'px-3 py-1 rounded-full text-xs font-semibold',
-                                            agent.PV === 'TRUE' ? 'bg-[var(--color-success-badge-bg)] text-[var(--color-success-badge-text)]' : 'bg-[var(--color-danger-badge-bg)] text-[var(--color-danger-badge-text)]'
-                                        ]">
+              <div class="agent-list">
+                <div v-for="agent in sortedAgents" :key="agent.AgentName" class="agent-row">
+                  <div class="agent-row-main">
+                    <span class="agent-row-name" :class="agent.AgentFaction === 'Resistance' ? 'is-resistance' : (agent.AgentFaction === 'Enlightened' ? 'is-enlightened' : '')">{{ agent.AgentName }}</span>
+                    <span class="faction-tag" :class="agent.AgentFaction === 'Resistance' ? 'is-resistance' : (agent.AgentFaction === 'Enlightened' ? 'is-enlightened' : '')">{{ agent.AgentFaction }}</span>
+                  </div>
+                  <div class="agent-row-side">
+                    <span class="agent-row-ap" :class="{ 'is-negative': Number(agent.APdiff) < 0 }">ΔAP {{ agent.APdiff ?? '—' }}</span>
+                    <span class="status-badge" :class="agent.PV === 'TRUE' ? 'is-checked' : 'is-unchecked'">
                       {{ t(agent.PV === 'TRUE' ? 'status.checkedIn' : 'status.notCheckedIn') }}
                     </span>
-                  </div>
-
-                  <div class="mt-3 flex items-center justify-between">
-                    <span :class="[
-                                            'px-2 py-1 rounded-full text-xs',
-                                            agent.AgentFaction === 'Resistance' ? 'bg-[var(--color-resistance-bg)] text-[var(--color-resistance-text)]' : 'bg-[var(--color-enlightened-bg)] text-[var(--color-enlightened-text)]'
-                                        ]">{{ agent.AgentFaction }}</span>
-
-                    <div class="flex items-center gap-2">
-                      <span v-if="getAgentModifiedTimeText(agent.AgentName)" class="text-xs text-[var(--color-text-secondary)] tabular-nums">
-                        {{ getAgentModifiedTimeText(agent.AgentName) }}
-                      </span>
-                      <button 
-                        @click="toggleVerification(agent)" 
-                        :class="[getActionButtonClass(agent), { 'opacity-50 cursor-not-allowed': verificationLoadingMap[agent.AgentName] }]"
-                        :disabled="verificationLoadingMap[agent.AgentName]"
-                      >
-                        <span v-if="verificationLoadingMap[agent.AgentName]" class="inline-block animate-spin mr-1">⌛</span>
-                        {{ t(agent.PV === 'TRUE' ? 'actions.uncheck' : 'actions.check') }}
-                      </button>
-                    </div>
+                    <span v-if="getAgentModifiedTimeText(agent.AgentName)" class="agent-row-time">
+                      {{ getAgentModifiedTimeText(agent.AgentName) }}
+                    </span>
+                    <button
+                      @click="toggleVerification(agent)"
+                      class="agent-action"
+                      :class="[getActionButtonClass(agent), { 'opacity-50 cursor-not-allowed': verificationLoadingMap[agent.AgentName] }]"
+                      :disabled="verificationLoadingMap[agent.AgentName]"
+                    >
+                      <span v-if="verificationLoadingMap[agent.AgentName]" class="inline-block animate-spin mr-1">⌛</span>
+                      {{ t(agent.PV === 'TRUE' ? 'actions.uncheck' : 'actions.check') }}
+                    </button>
                   </div>
                 </div>
               </div>
