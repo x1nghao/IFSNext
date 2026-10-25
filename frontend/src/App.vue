@@ -679,10 +679,7 @@ onUnmounted(() => {
                 </button>
               </div>
 
-              <!-- 导出与刷新按钮 -->
-              <AppButton @click="exportCsv" variant="secondary" :disabled="!sortedAgents.length" class="shrink-0">
-                {{ t('csv.export') }}
-              </AppButton>
+              <!-- 刷新按钮 -->
               <AppButton @click="loadData(false)" :loading="loading || isRefreshing" :disabled="loading || isRefreshing" class="transition-all duration-200 hover:scale-105 active:scale-95 shrink-0">
                 {{ loading ? t('loading') : (isRefreshing ? t('refreshing') : t('refreshData')) }}
               </AppButton>
@@ -793,11 +790,17 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- 显示总数 -->
-            <div class="flex justify-end mt-4">
+            <!-- 底部：总数与导出 -->
+            <div class="flex items-center justify-between mt-4">
               <span class="text-sm text-[var(--color-text-secondary)]">
                 {{ t('list.countPrefix') }} {{ filteredAgents.length }} {{ t('list.countSuffix') }}
               </span>
+              <button v-if="sortedAgents.length" @click="exportCsv" class="export-link">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"></path>
+                </svg>
+                {{ t('csv.export') }}
+              </button>
             </div>
           </div>
         </div>
