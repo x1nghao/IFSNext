@@ -38,3 +38,6 @@ coverage
 
 # Trae
 .trae
+
+# Wrangler local state
+.wrangler

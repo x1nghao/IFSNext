@@ -1,8 +1,15 @@
 // 服务账号的配置信息
 // 注意：GOOGLE_PRIVATE_KEY 和 GOOGLE_CLIENT_EMAIL 应在 Cloudflare Worker 的环境变量中设置
+// 可选：ALLOWED_SPREADSHEET_IDS —— 逗号分隔的表格 ID 白名单。设置后仅允许访问列表内的表格，
+// 防止本 Worker 被当作开放代理读取/写入服务账号可见的任意表格；留空则不限制（保持旧行为）。
 const SERVICE_ACCOUNT_INFO = {
   private_key: (typeof GOOGLE_PRIVATE_KEY !== 'undefined' ? GOOGLE_PRIVATE_KEY : '').replace(/\\n/g, '\n'),
   client_email: typeof GOOGLE_CLIENT_EMAIL !== 'undefined' ? GOOGLE_CLIENT_EMAIL : '',
+};
+
+const getAllowedSpreadsheetIds = () => {
+  if (typeof ALLOWED_SPREADSHEET_IDS === 'undefined' || !ALLOWED_SPREADSHEET_IDS) return null;
+  return String(ALLOWED_SPREADSHEET_IDS).split(',').map(s => s.trim()).filter(Boolean);
 };
 
 // Google Sheets 列索引配置 (从 0 开始)
@@ -120,8 +127,10 @@ async function getAccessToken() {
   });
 
   if (!response.ok) {
+    // 详情只进 Workers 日志，不外发：响应体可能包含服务账号邮箱等敏感信息
     const error = await response.text();
-    throw new Error(`获取访问令牌失败: ${response.status} ${error}`);
+    console.error('获取访问令牌失败:', response.status, error);
+    throw new Error(`获取访问令牌失败: HTTP ${response.status}`);
   }
 
   const dataResponse = await response.json();
@@ -145,7 +154,8 @@ async function getSheetData(spreadsheetId, sheetName, range = 'A1:L2000') {
   if (!response.ok) {
     handleApiRateLimit(response);
     const error = await response.text();
-    throw new Error(`获取数据失败: ${response.status} ${error}`);
+    console.error('获取数据失败:', response.status, error);
+    throw new Error(`获取数据失败: HTTP ${response.status}`);
   }
 
   const data = await response.json();
@@ -189,7 +199,8 @@ async function updateSheetCell(spreadsheetId, sheetName, rowIndex, colLetter, va
   if (!response.ok) {
     handleApiRateLimit(response);
     const error = await response.text();
-    throw new Error(`更新失败: ${response.status} ${error}`);
+    console.error('更新失败:', response.status, error);
+    throw new Error(`更新失败: HTTP ${response.status}`);
   }
 
   return 'Update successful';
@@ -227,6 +238,12 @@ async function handleRequest(event) {
     return jsonResponse({ error: 'Missing spreadsheet_id' }, 400);
   }
 
+  // 可选白名单：设置 ALLOWED_SPREADSHEET_IDS 后仅放行列表内的表格
+  const allowedIds = getAllowedSpreadsheetIds();
+  if (allowedIds && !allowedIds.includes(spreadsheetId)) {
+    return jsonResponse({ error: 'Spreadsheet not allowed' }, 403);
+  }
+
   // 统一缓存键构造逻辑
   const cache = caches.default;
   const dataUrl = new URL(request.url);
@@ -244,7 +261,12 @@ async function handleRequest(event) {
         // 增加一个自定义响应头标识缓存命中（可选，方便调试）
         const headers = new Headers(cachedResponse.headers);
         headers.set('X-Cache-Status', 'HIT');
-        return new Response(cachedResponse.body, { ...cachedResponse, headers });
+        // 保留缓存响应的真实状态码（Response 的 status 是原型 getter，spread 复制不到）
+        return new Response(cachedResponse.body, {
+          status: cachedResponse.status,
+          statusText: cachedResponse.statusText,
+          headers
+        });
       }
 
       // 获取数据
@@ -269,6 +291,7 @@ async function handleRequest(event) {
       
       return response;
     } catch (error) {
+      console.error('/data 处理失败:', error);
       return jsonResponse({ error: error.message }, 500);
     }
   }
@@ -301,6 +324,7 @@ async function handleRequest(event) {
 
       return jsonResponse({ status: 'success', message: updateResult, new_value: newValue });
     } catch (error) {
+      console.error('/verify 处理失败:', error);
       return jsonResponse({ error: error.message }, 500);
     }
   }
