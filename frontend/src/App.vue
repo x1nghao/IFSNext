@@ -14,6 +14,7 @@ import {
   removeAgentModifiedTime,
 } from '@/utils/agentModifiedAt';
 import { isSafeHttpUrl } from '@/utils/url';
+import { buildCsvWithBom } from '@/utils/csv';
 
 const { t, locale } = useI18n();
 
@@ -339,6 +340,38 @@ const clearSearch = () => {
   addLog('已清除搜索条件');
 };
 
+const exportCsv = () => {
+  const list = sortedAgents.value;
+  if (!list.length) {
+    addError(t('csv.noData'));
+    return;
+  }
+  const headers = [
+    t('csv.col.name'),
+    t('csv.col.faction'),
+    t('csv.col.ap'),
+    t('csv.col.status'),
+    t('csv.col.modifiedAt'),
+  ];
+  const rows = list.map(a => [
+    a.AgentName,
+    a.AgentFaction,
+    a.APdiff ?? '',
+    a.PV === 'TRUE' ? t('status.checkedIn') : t('status.notCheckedIn'),
+    getAgentModifiedTimeText(a.AgentName),
+  ]);
+  const blob = new Blob([buildCsvWithBom(headers, rows)], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `IFSNext-${(spreadsheetId.value || 'export').slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  addLog(t('csv.exported', { n: list.length }));
+};
+
 watch(spreadsheetId, (newVal) => {
   if (!newVal) return;
   const extracted = extractSpreadsheetId(newVal);
@@ -554,7 +587,10 @@ onUnmounted(() => {
                 </button>
               </div>
 
-              <!-- 刷新按钮 -->
+              <!-- 导出与刷新按钮 -->
+              <AppButton @click="exportCsv" variant="secondary" :disabled="!sortedAgents.length" class="shrink-0">
+                {{ t('csv.export') }}
+              </AppButton>
               <AppButton @click="loadData(false)" :loading="loading || isRefreshing" :disabled="loading || isRefreshing" class="transition-all duration-200 hover:scale-105 active:scale-95 shrink-0">
                 {{ loading ? t('loading') : (isRefreshing ? t('refreshing') : t('refreshData')) }}
               </AppButton>

@@ -31,6 +31,12 @@ export const messages = {
     empty: { title: '暂无数据', hint: '请加载数据或清除搜索' },
     status: { checkedIn: '已签到', notCheckedIn: '未签到' },
     actions: { check: '签到', uncheck: '撤销' },
+    csv: {
+      export: '导出 CSV',
+      noData: '暂无数据可导出',
+      exported: '已导出 {n} 条记录',
+      col: { name: 'Agent', faction: '阵营', ap: 'ΔAP', status: '签到状态', modifiedAt: '本地修改时间' }
+    },
     list: { countPrefix: '共', countSuffix: '人' },
     saving: '保存中...',
     saveSettings: '保存',
@@ -68,6 +74,12 @@ export const messages = {
     empty: { title: 'No Data', hint: 'Load data or clear search' },
     status: { checkedIn: 'Checked In', notCheckedIn: 'Not Checked In' },
     actions: { check: 'Check In', uncheck: 'Undo' },
+    csv: {
+      export: 'Export CSV',
+      noData: 'No data to export',
+      exported: 'Exported {n} records',
+      col: { name: 'Agent', faction: 'Faction', ap: 'ΔAP', status: 'Status', modifiedAt: 'Modified At' }
+    },
     list: { countPrefix: 'Total', countSuffix: '' },
     saving: 'Saving...',
     saveSettings: 'Save',
@@ -105,6 +117,12 @@ export const messages = {
     empty: { title: '暫無數據', hint: '請載入數據或清除搜尋' },
     status: { checkedIn: '已簽到', notCheckedIn: '未簽到' },
     actions: { check: '簽到', uncheck: '撤銷' },
+    csv: {
+      export: '匯出 CSV',
+      noData: '暫無資料可匯出',
+      exported: '已匯出 {n} 筆資料',
+      col: { name: 'Agent', faction: '陣營', ap: 'ΔAP', status: '簽到狀態', modifiedAt: '修改時間' }
+    },
     list: { countPrefix: '共', countSuffix: '人' },
     saving: '儲存中...',
     saveSettings: '儲存',
