@@ -16,61 +16,70 @@
     #app { min-height: 100dvh; }
 }
 
-/* ═══ Liquid Glass 设计令牌 ═══ */
+/* ═══ 设计令牌 ═══
+   遵循 Apple Liquid Glass 两层模型：
+   - 内容层（卡片/列表/控件）：标准实色材质，安静可读
+   - 导航层（顶栏/底部 Tab 栏）：唯一的 Liquid Glass 悬浮层 */
 :root {
     --color-primary: #14a3ae;
     --color-primary-strong: #0d7d87;
-    --color-primary-soft: rgba(20, 163, 174, 0.18);
+    --color-primary-soft: rgba(20, 163, 174, 0.14);
 
     --color-focus-ring: rgba(20, 163, 174, 0.4);
 
-    /* 玻璃表面 */
-    --color-card-bg: rgba(255, 255, 255, 0.46);
-    --color-card-bg-dark: rgba(255, 255, 255, 0.07);
-    --glass-border: rgba(255, 255, 255, 0.55);
-    --glass-border-dark: rgba(255, 255, 255, 0.14);
-    --glass-shine: rgba(255, 255, 255, 0.9);
-    --glass-shine-dark: rgba(255, 255, 255, 0.3);
+    /* 内容层：标准材质（近实色） */
+    --color-card-bg: rgba(255, 255, 255, 0.94);
+    --color-card-bg-dark: #1c1c1e;
+    --card-border: rgba(0, 0, 0, 0.055);
+    --card-border-dark: rgba(255, 255, 255, 0.08);
 
-    --color-control-bg: rgba(255, 255, 255, 0.42);
-    --color-control-bg-strong: rgba(255, 255, 255, 0.62);
-    --color-control-bg-dark: rgba(255, 255, 255, 0.08);
-    --color-control-bg-strong-dark: rgba(255, 255, 255, 0.14);
+    /* 导航层：Liquid Glass 材质（regular 变体，保证可读性） */
+    --chrome-bg: rgba(255, 255, 255, 0.68);
+    --chrome-bg-dark: rgba(28, 30, 32, 0.62);
+    --chrome-border: rgba(255, 255, 255, 0.5);
+    --chrome-border-dark: rgba(255, 255, 255, 0.12);
+    --chrome-shine: rgba(255, 255, 255, 0.85);
+    --chrome-shine-dark: rgba(255, 255, 255, 0.22);
 
-    --color-separator: rgba(13, 42, 48, 0.12);
-    --color-text: #0d2429;
-    --color-text-secondary: #55707a;
-    --color-bg: #eef6f7;
+    /* 内容层控件：iOS 中性填充 */
+    --color-control-bg: rgba(120, 120, 128, 0.12);
+    --color-control-bg-strong: rgba(120, 120, 128, 0.2);
+    --color-control-bg-dark: rgba(120, 120, 128, 0.24);
+    --color-control-bg-strong-dark: rgba(120, 120, 128, 0.34);
+
+    --color-separator: rgba(60, 60, 67, 0.14);
+    --color-text: #10242a;
+    --color-text-secondary: #5f7278;
+    --color-bg: #eef3f4;
 
     --color-success: #2fae62;
     --color-warning: #f59e0b;
     --color-danger: #ff453a;
 
-    --color-success-badge-bg: rgba(47, 174, 98, 0.16);
+    --color-success-badge-bg: rgba(47, 174, 98, 0.15);
     --color-success-badge-text: #0f6b37;
-    --color-danger-badge-bg: rgba(255, 69, 58, 0.14);
+    --color-danger-badge-bg: rgba(255, 69, 58, 0.13);
     --color-danger-badge-text: #b3231b;
 
     --color-resistance: #2563eb;
-    --color-resistance-bg: rgba(37, 99, 235, 0.14);
+    --color-resistance-bg: rgba(37, 99, 235, 0.12);
     --color-resistance-text: #1d4ed8;
     --color-enlightened: #16a34a;
-    --color-enlightened-bg: rgba(22, 163, 74, 0.14);
+    --color-enlightened-bg: rgba(22, 163, 74, 0.12);
     --color-enlightened-text: #15803d;
 
-    /* 行内动作按钮胶囊 */
-    --action-resistance-bg: rgba(37, 99, 235, 0.16);
+    /* 行内动作按钮：实色 tinted 填充 */
+    --action-resistance-bg: rgba(37, 99, 235, 0.13);
     --action-resistance-text: #1d4ed8;
-    --action-enlightened-bg: rgba(22, 163, 74, 0.16);
+    --action-enlightened-bg: rgba(22, 163, 74, 0.13);
     --action-enlightened-text: #15803d;
 
-    /* 阴影 */
-    --shadow-glass: 0 12px 36px rgba(9, 60, 72, 0.14);
-    --shadow-hover: 0 16px 44px rgba(9, 60, 72, 0.2);
-    --shadow-ios: 0 2px 10px rgba(9, 60, 72, 0.08);
+    /* 阴影：内容卡轻投影，导航层深投影 */
+    --shadow-card: 0 1px 3px rgba(16, 42, 48, 0.06), 0 4px 14px rgba(16, 42, 48, 0.05);
+    --shadow-chrome: 0 12px 36px rgba(16, 42, 48, 0.16), 0 2px 8px rgba(16, 42, 48, 0.08);
+    --shadow-hover: 0 8px 24px rgba(16, 42, 48, 0.12);
 
-    --radius-ios: 14px;
-    --radius-card: 22px;
+    --radius-card: 20px;
     --tap-size: 44px;
     --font-title: 20px;
     --font-body: 16px;
@@ -81,31 +90,33 @@
 }
 
 html.dark {
-    --color-bg: #0c2229;
-    --color-separator: rgba(255, 255, 255, 0.12);
-    --color-text: #ecf4f5;
-    --color-text-secondary: #93aeb4;
+    --color-separator: rgba(255, 255, 255, 0.1);
+    --color-text: #eceff0;
+    --color-text-secondary: #98a3a6;
+    --color-bg: #101416;
 
-    --color-success-badge-bg: rgba(85, 217, 141, 0.16);
+    --color-success-badge-bg: rgba(85, 217, 141, 0.14);
     --color-success-badge-text: #7ff0ae;
-    --color-danger-badge-bg: rgba(255, 105, 97, 0.16);
+    --color-danger-badge-bg: rgba(255, 105, 97, 0.14);
     --color-danger-badge-text: #ffb3ae;
 
     --color-resistance: rgba(147, 197, 253, 0.95);
-    --color-resistance-bg: rgba(30, 58, 138, 0.5);
+    --color-resistance-bg: rgba(96, 165, 250, 0.16);
     --color-resistance-text: rgba(191, 219, 254, 0.95);
     --color-enlightened: rgba(134, 239, 172, 0.95);
-    --color-enlightened-bg: rgba(20, 83, 45, 0.5);
+    --color-enlightened-bg: rgba(74, 222, 128, 0.14);
     --color-enlightened-text: rgba(187, 247, 208, 0.95);
 
-    --action-resistance-bg: rgba(96, 165, 250, 0.2);
+    --action-resistance-bg: rgba(96, 165, 250, 0.18);
     --action-resistance-text: rgba(191, 219, 254, 0.98);
-    --action-enlightened-bg: rgba(74, 222, 128, 0.18);
+    --action-enlightened-bg: rgba(74, 222, 128, 0.16);
     --action-enlightened-text: rgba(187, 247, 208, 0.98);
 
-    --shadow-glass: 0 12px 36px rgba(0, 0, 0, 0.4);
-    --shadow-hover: 0 16px 44px rgba(0, 0, 0, 0.5);
-    --shadow-ios: 0 2px 10px rgba(0, 0, 0, 0.25);
+    --card-border: rgba(255, 255, 255, 0.08);
+
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.2);
+    --shadow-chrome: 0 12px 36px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
+    --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .title-text { font-size: var(--font-title); font-weight: 700; letter-spacing: -0.02em; }
@@ -113,10 +124,10 @@ html.dark {
 .caption-text { font-size: var(--font-caption); color: var(--color-text-secondary); }
 .tap-target { min-width: var(--tap-size); min-height: var(--tap-size); }
 
-/* ═══ 极光玻璃背景（固定层，滚动不跟随） ═══ */
+/* ═══ 背景：单一色相、近乎实色，为悬浮玻璃层提供干净的衬托 ═══ */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
-    background: #e8f3f5;
+    background: #f2f6f7;
     color: var(--color-text);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -129,47 +140,27 @@ body::before {
     z-index: -1;
     pointer-events: none;
     background:
-        radial-gradient(90% 52% at 8% 0%, rgba(122, 215, 224, 0.5), transparent 60%),
-        radial-gradient(72% 46% at 92% 4%, rgba(126, 224, 168, 0.42), transparent 55%),
-        radial-gradient(95% 55% at 50% 108%, rgba(74, 168, 255, 0.36), transparent 62%),
-        linear-gradient(170deg, #eaf5f6, #e2eff1 55%, #e9f2f4);
+        radial-gradient(120% 46% at 50% 0%, rgba(20, 163, 174, 0.07), transparent 70%),
+        linear-gradient(180deg, #f3f7f8, #edf2f4);
 }
-html.dark body { background: #051a20; }
+html.dark body { background: #0c1012; }
 html.dark body::before {
     background:
-        radial-gradient(90% 52% at 8% 0%, rgba(24, 118, 134, 0.5), transparent 60%),
-        radial-gradient(72% 46% at 92% 4%, rgba(24, 122, 76, 0.38), transparent 55%),
-        radial-gradient(95% 55% at 50% 108%, rgba(28, 88, 178, 0.42), transparent 62%),
-        linear-gradient(170deg, #07202a, #051a23 55%, #06202a);
+        radial-gradient(120% 46% at 50% 0%, rgba(20, 163, 174, 0.05), transparent 70%),
+        linear-gradient(180deg, #0d1315, #0b0f11);
 }
 
-/* ═══ 玻璃表面 ═══ */
+/* ═══ 内容层：标准材质 ═══ */
 .card {
     position: relative;
     background: var(--color-card-bg);
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--card-border);
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow-glass);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    box-shadow: var(--shadow-card);
 }
 html.dark .card {
     background: var(--color-card-bg-dark);
-    border-color: var(--glass-border-dark);
-}
-/* 玻璃 signature：顶缘高光 */
-.card::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 8%;
-    right: 8%;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--glass-shine), transparent);
-    pointer-events: none;
-}
-html.dark .card::before {
-    background: linear-gradient(90deg, transparent, var(--glass-shine-dark), transparent);
+    border-color: var(--card-border);
 }
 
 .app-select {
@@ -189,17 +180,14 @@ html.dark .card::before {
     background: var(--color-control-bg-strong);
 }
 .app-select:focus {
+    background: var(--color-bg);
     box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
-html.dark .app-select {
-    background: var(--color-control-bg-dark);
-    color: var(--color-text);
-}
-html.dark .app-select:hover {
-    background: var(--color-control-bg-strong-dark);
+html.dark .app-select:focus {
+    background: rgba(120, 120, 128, 0.3);
 }
 
-/* ═══ 浮动玻璃顶栏 ═══ */
+/* ═══ 导航层：Liquid Glass（仅顶栏与底部 Tab 栏） ═══ */
 .ifs-topbar {
     position: sticky;
     top: calc(10px + env(safe-area-inset-top));
@@ -216,16 +204,16 @@ html.dark .app-select:hover {
     gap: 10px;
     padding: 8px 10px 8px 20px;
     border-radius: 999px;
-    background: var(--color-card-bg);
-    border: 1px solid var(--glass-border);
-    box-shadow: inset 0 1.5px 0 var(--glass-shine), var(--shadow-glass);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    background: var(--chrome-bg);
+    border: 1px solid var(--chrome-border);
+    box-shadow: inset 0 1.5px 0 var(--chrome-shine), var(--shadow-chrome);
+    backdrop-filter: blur(30px) saturate(170%);
+    -webkit-backdrop-filter: blur(30px) saturate(170%);
 }
 html.dark .ifs-topbar-inner {
-    background: var(--color-card-bg-dark);
-    border-color: var(--glass-border-dark);
-    box-shadow: inset 0 1.5px 0 var(--glass-shine-dark), var(--shadow-glass);
+    background: var(--chrome-bg-dark);
+    border-color: var(--chrome-border-dark);
+    box-shadow: inset 0 1.5px 0 var(--chrome-shine-dark), var(--shadow-chrome);
 }
 .ifs-iconbtn {
     width: 40px;
@@ -234,15 +222,12 @@ html.dark .ifs-topbar-inner {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-control-bg);
+    background: rgba(120, 120, 128, 0.14);
     color: var(--color-text);
-    transition: background-color 0.2s ease, transform 0.2s ease;
+    transition: background-color 0.2s ease;
 }
-.ifs-iconbtn:hover { background: var(--color-control-bg-strong); }
-html.dark .ifs-iconbtn { background: var(--color-control-bg-dark); }
-html.dark .ifs-iconbtn:hover { background: var(--color-control-bg-strong-dark); }
+.ifs-iconbtn:hover { background: rgba(120, 120, 128, 0.24); }
 
-/* ═══ 浮动玻璃底部 Tab 栏 ═══ */
 .ifs-tabbar {
     position: fixed;
     left: 50%;
@@ -253,16 +238,16 @@ html.dark .ifs-iconbtn:hover { background: var(--color-control-bg-strong-dark); 
     gap: 4px;
     padding: 5px;
     border-radius: 999px;
-    background: var(--color-card-bg);
-    border: 1px solid var(--glass-border);
-    box-shadow: inset 0 1.5px 0 var(--glass-shine), var(--shadow-glass);
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    background: var(--chrome-bg);
+    border: 1px solid var(--chrome-border);
+    box-shadow: inset 0 1.5px 0 var(--chrome-shine), var(--shadow-chrome);
+    backdrop-filter: blur(30px) saturate(170%);
+    -webkit-backdrop-filter: blur(30px) saturate(170%);
 }
 html.dark .ifs-tabbar {
-    background: var(--color-card-bg-dark);
-    border-color: var(--glass-border-dark);
-    box-shadow: inset 0 1.5px 0 var(--glass-shine-dark), var(--shadow-glass);
+    background: var(--chrome-bg-dark);
+    border-color: var(--chrome-border-dark);
+    box-shadow: inset 0 1.5px 0 var(--chrome-shine-dark), var(--shadow-chrome);
 }
 .ifs-tab {
     display: flex;
@@ -279,12 +264,12 @@ html.dark .ifs-tabbar {
 .ifs-tab.is-active {
     color: var(--color-text);
     font-weight: 600;
-    background: var(--color-control-bg-strong);
-    box-shadow: inset 0 0 0 1px var(--glass-border), inset 0 1px 0 var(--glass-shine);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 1px 6px rgba(16, 42, 48, 0.14);
 }
 html.dark .ifs-tab.is-active {
-    background: var(--color-control-bg-strong-dark);
-    box-shadow: inset 0 0 0 1px var(--glass-border-dark), inset 0 1px 0 var(--glass-shine-dark);
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
 }
 
 /* 底部 Tab 栏占位 */
@@ -307,8 +292,8 @@ html.dark .ifs-tab.is-active {
     break-inside: avoid;
     transition: background-color 0.15s ease;
 }
-.agent-row:hover { background: rgba(255, 255, 255, 0.22); }
-html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.05); }
+.agent-row:hover { background: rgba(120, 120, 128, 0.07); }
+html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
 .agent-row + .agent-row { border-top: 1px solid var(--color-separator); }
 
 .agent-row-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
@@ -344,7 +329,6 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.05); }
     flex: none;
     margin-top: 1px;
 }
-.agent-row-ap.is-negative { color: var(--color-danger); font-weight: 600; }
 .agent-row-time { font-size: 11px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
 
 .status-badge {
@@ -363,6 +347,7 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.05); }
     color: var(--color-danger-badge-text);
 }
 
+/* 行内动作按钮：内容层内的标准 tinted 控件 */
 .agent-action {
     font-size: 12px;
     font-weight: 600;
@@ -370,34 +355,28 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.05); }
     border-radius: 999px;
     color: var(--color-text);
     background: var(--color-control-bg);
-    box-shadow: inset 0 0 0 1px var(--glass-border), inset 0 1px 0 var(--glass-shine);
-    transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.15s ease, background-color 0.2s ease;
 }
 .agent-action:hover { background: var(--color-control-bg-strong); }
 .agent-action:active { transform: scale(0.96); }
-html.dark .agent-action {
-    background: var(--color-control-bg-dark);
-    box-shadow: inset 0 0 0 1px var(--glass-border-dark), inset 0 1px 0 var(--glass-shine-dark);
-}
-html.dark .agent-action:hover { background: var(--color-control-bg-strong-dark); }
 
 .agent-action.action-resistance {
     background: var(--action-resistance-bg);
     color: var(--action-resistance-text);
-    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.28), inset 0 1px 0 var(--glass-shine);
 }
+.agent-action.action-resistance:hover { background: rgba(37, 99, 235, 0.22); }
 .agent-action.action-enlightened {
     background: var(--action-enlightened-bg);
     color: var(--action-enlightened-text);
-    box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.28), inset 0 1px 0 var(--glass-shine);
 }
+.agent-action.action-enlightened:hover { background: rgba(22, 163, 74, 0.22); }
 .agent-action.action-primary {
     background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
     color: #fff;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(20, 163, 174, 0.4);
+    box-shadow: 0 2px 8px rgba(20, 163, 174, 0.35);
 }
 html.dark .agent-action.action-primary {
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 14px rgba(20, 163, 174, 0.3);
+    box-shadow: 0 2px 8px rgba(20, 163, 174, 0.25);
 }
 
 /* ═══ 二维码面板 ═══ */
@@ -406,10 +385,6 @@ html.dark .agent-action.action-primary {
     border-radius: 16px;
     background: transparent;
     box-shadow: none;
-    border: none;
-}
-.dark .qr-panel {
-    background: transparent;
     border: none;
 }
 html.pwa, body.pwa { overscroll-behavior-y: none; }
