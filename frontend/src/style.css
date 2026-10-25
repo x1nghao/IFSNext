@@ -296,12 +296,12 @@ html.dark .ifs-tab.is-active {
     column-gap: 40px;
     column-rule: 1px solid var(--color-separator);
 }
+/* 行结构固定为两行：上行「名字 + 签到状态」，下行「阵营标签 + ΔAP/时间/按钮靠右」。
+   高度确定性一致，杜绝 flex-wrap 换行导致的错位与参差。 */
 .agent-row {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px 14px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 8px;
     padding: 12px 14px;
     break-inside: avoid;
     transition: background-color 0.15s ease;
@@ -310,10 +310,13 @@ html.dark .ifs-tab.is-active {
 html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
 .agent-row + .agent-row { border-top: 1px solid var(--color-separator); }
 
-.agent-row-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.agent-row-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
 .agent-row-name { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .agent-row-name.is-resistance { color: var(--color-resistance-text); }
 .agent-row-name.is-enlightened { color: var(--color-enlightened-text); }
+
+.agent-row-bottom { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.agent-row-side { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; min-width: 0; }
 
 .faction-tag {
     width: fit-content;

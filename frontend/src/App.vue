@@ -769,32 +769,34 @@ onUnmounted(() => {
             <div v-else>
               <div class="agent-list">
                 <div v-for="agent in sortedAgents" :key="agent.AgentName" class="agent-row">
-                  <div class="agent-row-main">
+                  <div class="agent-row-top">
                     <span class="agent-row-name" :class="agent.AgentFaction === 'Resistance' ? 'is-resistance' : (agent.AgentFaction === 'Enlightened' ? 'is-enlightened' : '')">{{ agent.AgentName }}</span>
-                    <span class="faction-tag" :class="agent.AgentFaction === 'Resistance' ? 'is-resistance' : (agent.AgentFaction === 'Enlightened' ? 'is-enlightened' : '')">{{ agent.AgentFaction }}</span>
-                  </div>
-                  <div class="agent-row-side">
-                    <span class="agent-row-ap" :class="{ 'is-negative': Number(agent.APdiff) < 0 }">
-                      <svg class="ap-delta" viewBox="0 0 12 12" aria-hidden="true">
-                        <path d="M6 1.6 10.9 10.4 H1.1 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
-                      </svg>
-                      <span>AP {{ agent.APdiff ?? '—' }}</span>
-                    </span>
                     <span class="status-badge" :class="agent.PV === 'TRUE' ? 'is-checked' : 'is-unchecked'">
                       {{ t(agent.PV === 'TRUE' ? 'status.checkedIn' : 'status.notCheckedIn') }}
                     </span>
-                    <span v-if="getAgentModifiedTimeText(agent.AgentName)" class="agent-row-time">
-                      {{ getAgentModifiedTimeText(agent.AgentName) }}
-                    </span>
-                    <button
-                      @click="toggleVerification(agent)"
-                      class="agent-action"
-                      :class="[getActionButtonClass(agent), { 'opacity-50 cursor-not-allowed': verificationLoadingMap[agent.AgentName] }]"
-                      :disabled="verificationLoadingMap[agent.AgentName]"
-                    >
-                      <span v-if="verificationLoadingMap[agent.AgentName]" class="inline-block animate-spin mr-1">⌛</span>
-                      {{ t(agent.PV === 'TRUE' ? 'actions.uncheck' : 'actions.check') }}
-                    </button>
+                  </div>
+                  <div class="agent-row-bottom">
+                    <span class="faction-tag" :class="agent.AgentFaction === 'Resistance' ? 'is-resistance' : (agent.AgentFaction === 'Enlightened' ? 'is-enlightened' : '')">{{ agent.AgentFaction }}</span>
+                    <div class="agent-row-side">
+                      <span class="agent-row-ap" :class="{ 'is-negative': Number(agent.APdiff) < 0 }">
+                        <svg class="ap-delta" viewBox="0 0 12 12" aria-hidden="true">
+                          <path d="M6 1.6 10.9 10.4 H1.1 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                        </svg>
+                        <span>AP {{ agent.APdiff ?? '—' }}</span>
+                      </span>
+                      <span v-if="getAgentModifiedTimeText(agent.AgentName)" class="agent-row-time">
+                        {{ getAgentModifiedTimeText(agent.AgentName) }}
+                      </span>
+                      <button
+                        @click="toggleVerification(agent)"
+                        class="agent-action"
+                        :class="[getActionButtonClass(agent), { 'opacity-50 cursor-not-allowed': verificationLoadingMap[agent.AgentName] }]"
+                        :disabled="verificationLoadingMap[agent.AgentName]"
+                      >
+                        <span v-if="verificationLoadingMap[agent.AgentName]" class="inline-block animate-spin mr-1">⌛</span>
+                        {{ t(agent.PV === 'TRUE' ? 'actions.uncheck' : 'actions.check') }}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
