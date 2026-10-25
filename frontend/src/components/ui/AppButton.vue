@@ -22,15 +22,15 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits(['click']);
 
 const classes = computed(() => {
-  const base = 'inline-flex items-center justify-center font-semibold rounded-[12px] transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100';
-  
+  const base = 'inline-flex items-center justify-center font-semibold rounded-full transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100';
+
   const sizes = {
     small: 'h-[28px] text-xs px-3 py-1',
     medium: 'h-[44px] min-h-[44px] px-5',
   };
 
   const variants = {
-    primary: 'text-white bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-strong)] shadow-[0_6px_16px_rgba(50,172,182,0.35)] border border-white/15 hover:-translate-y-[1px] hover:shadow-[0_10px_24px_rgba(50,172,182,0.45)] active:shadow-[0_4px_12px_rgba(50,172,182,0.28)]',
+    primary: 'relative overflow-hidden text-white bg-[rgba(20,163,174,0.8)] backdrop-blur-xl backdrop-saturate-150 border border-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_4px_16px_rgba(20,163,174,0.4)] hover:bg-[rgba(20,163,174,0.88)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_6px_22px_rgba(20,163,174,0.5)] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_10px_rgba(20,163,174,0.35)] dark:bg-[rgba(15,140,150,0.5)] dark:border-white/15 dark:hover:bg-[rgba(15,140,150,0.6)]',
     secondary: 'bg-[var(--color-control-bg)] text-[var(--color-primary)] hover:bg-[var(--color-control-bg-strong)] backdrop-blur-md dark:bg-[var(--color-control-bg-dark)] dark:text-white',
     danger: 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50',
     ghost: 'bg-transparent text-[var(--color-primary)] hover:bg-[var(--color-control-bg)] dark:text-[var(--color-primary)]',
