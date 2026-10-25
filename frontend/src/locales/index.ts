@@ -48,6 +48,15 @@ export const messages = {
       col: { name: 'Agent', faction: '阵营', ap: 'ΔAP', status: '签到状态', modifiedAt: '本地修改时间' }
     },
     data: { title: '数据', export: '导出原始数据', hint: '将当前名单（含排序与筛选结果）导出为 CSV 文件' },
+    formCheck: {
+      checking: '正在检查表单状态…',
+      ok: '表单可访问，正在收集回复',
+      closed: '注意：该表单已停止收集回复',
+      notfound: '找不到该表单，请检查链接是否正确',
+      notlinked: '未在表格中找到「表单响应」工作表，表单可能未关联此表格',
+      invalid: '这不是有效的 Google 表单链接',
+      failed: '暂时无法检查表单状态'
+    },
     list: { countPrefix: '共', countSuffix: '人' },
     saving: '保存中...',
     saveSettings: '保存',
@@ -102,6 +111,15 @@ export const messages = {
       col: { name: 'Agent', faction: 'Faction', ap: 'ΔAP', status: 'Status', modifiedAt: 'Modified At' }
     },
     data: { title: 'Data', export: 'Export Raw Data', hint: 'Export the current roster (with sorting and filtering applied) as a CSV file' },
+    formCheck: {
+      checking: 'Checking form status…',
+      ok: 'Form reachable and accepting responses',
+      closed: 'Heads up: this form is no longer accepting responses',
+      notfound: 'Form not found — please double-check the link',
+      notlinked: 'No "Form Responses" tab found in the sheet — the form may not be linked to this spreadsheet',
+      invalid: 'This is not a valid Google Forms link',
+      failed: 'Form status check unavailable right now'
+    },
     list: { countPrefix: 'Total', countSuffix: '' },
     saving: 'Saving...',
     saveSettings: 'Save',
@@ -156,6 +174,15 @@ export const messages = {
       col: { name: 'Agent', faction: '陣營', ap: 'ΔAP', status: '簽到狀態', modifiedAt: '修改時間' }
     },
     data: { title: '資料', export: '匯出原始資料', hint: '將目前名單（含排序與篩選結果）匯出為 CSV 檔案' },
+    formCheck: {
+      checking: '正在檢查表單狀態…',
+      ok: '表單可存取，正在收集回覆',
+      closed: '注意：該表單已停止收集回覆',
+      notfound: '找不到該表單，請檢查連結是否正確',
+      notlinked: '未在表格中找到「表單回應」工作表，表單可能未關聯此表格',
+      invalid: '這不是有效的 Google 表單連結',
+      failed: '暫時無法檢查表單狀態'
+    },
     list: { countPrefix: '共', countSuffix: '人' },
     saving: '儲存中...',
     saveSettings: '儲存',

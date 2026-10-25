@@ -5,8 +5,8 @@ import { readFileSync } from 'node:fs';
 const workerSource = readFileSync(new URL('./worker.js', import.meta.url), 'utf8');
 
 // 在受控上下文中加载 worker.js：注入 Service Worker 风格的全局（addEventListener / caches），
-// 环境变量通过 globalThis 注入。仅覆盖不依赖外部网络的路由与守卫行为。
-function loadWorker({ allowedSpreadsheetIds } = {}) {
+// 环境变量与 fetch 通过 globalThis / 参数注入。仅覆盖不依赖真实外部网络的行为。
+function loadWorker({ allowedSpreadsheetIds, fetchImpl, credentials } = {}) {
   const listeners = {};
   const cacheStore = new Map();
   const cache = {
@@ -23,8 +23,17 @@ function loadWorker({ allowedSpreadsheetIds } = {}) {
   } else {
     globalThis.ALLOWED_SPREADSHEET_IDS = allowedSpreadsheetIds;
   }
+  if (credentials) {
+    globalThis.GOOGLE_PRIVATE_KEY = credentials.privateKey;
+    globalThis.GOOGLE_CLIENT_EMAIL = credentials.clientEmail;
+  } else {
+    delete globalThis.GOOGLE_PRIVATE_KEY;
+    delete globalThis.GOOGLE_CLIENT_EMAIL;
+  }
 
-  new Function('addEventListener', 'caches', workerSource)(addEventListener, cache);
+  const fetchStub = fetchImpl || (async () => { throw new Error('network disabled in tests'); });
+  // fetch 作为参数注入 worker 作用域，测试中可拦截对 Google 的请求
+  new Function('addEventListener', 'caches', 'fetch', workerSource)(addEventListener, cache, fetchStub);
 
   return {
     handle(request) {
@@ -38,6 +47,19 @@ function loadWorker({ allowedSpreadsheetIds } = {}) {
       return captured;
     },
   };
+}
+
+// 生成真实 RSA 测试密钥（PEM），使 getAccessToken 的 JWT 签名可执行
+async function generateTestPem() {
+  const keyPair = await crypto.subtle.generateKey(
+    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    true,
+    ['sign', 'verify']
+  );
+  const pkcs8 = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+  let binary = '';
+  for (const byte of new Uint8Array(pkcs8)) binary += String.fromCharCode(byte);
+  return `-----BEGIN PRIVATE KEY-----\n${btoa(binary)}\n-----END PRIVATE KEY-----`;
 }
 
 test('缺少 spreadsheet_id 返回 400', async () => {
@@ -86,4 +108,128 @@ test('OPTIONS 预检返回 CORS 头', async () => {
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('Access-Control-Allow-Origin'), '*');
   assert.match(response.headers.get('Access-Control-Allow-Methods'), /POST/);
+});
+
+test('OPTIONS 预检返回 CORS 头', async () => {
+  const worker = loadWorker();
+  const response = await worker.handle(new Request('https://worker.test/data', { method: 'OPTIONS' }));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'), '*');
+  assert.match(response.headers.get('Access-Control-Allow-Methods'), /POST/);
+});
+
+// ── /form-check ──
+
+const FORM_HTML_OPEN = '<html><head><title>IFS Check-in - Google 表单</title></head><body><script>var FB_PUBLIC_LOAD_DATA_ = [null,null,"IFS Check-in",[]];</script></body></html>';
+const FORM_HTML_CLOSED = '<html><head><title>IFS Check-in</title></head><body><div class="freebirdFormviewerViewResponseClosedMessage">已停止</div><script>var FB_PUBLIC_LOAD_DATA_ = [];</script></body></html>';
+
+function formCheckFetchStub({ formStatus = 200, formHtml = FORM_HTML_OPEN, sheetTitles } = {}) {
+  return async (url) => {
+    const u = String(url);
+    if (u.includes('oauth2.googleapis.com/token')) {
+      return new Response(JSON.stringify({ access_token: 'test-token', expires_in: 3600 }), { status: 200 });
+    }
+    if (u.includes('/viewform')) {
+      return new Response(formHtml, { status: formStatus });
+    }
+    if (u.includes('sheets.googleapis.com/v4/spreadsheets/')) {
+      return new Response(JSON.stringify(sheetTitles ?? { sheets: [{ properties: { title: 'Data' } }, { properties: { title: 'Form Responses 1' } }] }), { status: 200 });
+    }
+    return new Response('unexpected', { status: 500 });
+  };
+}
+
+test('form-check 缺少 form_url 返回 400', async () => {
+  const worker = loadWorker({ allowedSpreadsheetIds: 'sheet-1' });
+  const response = await worker.handle(new Request('https://worker.test/form-check?spreadsheet_id=sheet-1'));
+  assert.equal(response.status, 400);
+});
+
+test('form-check 非 Google 表单返回 supported:false', async () => {
+  const worker = loadWorker({ allowedSpreadsheetIds: 'sheet-1' });
+  const response = await worker.handle(
+    new Request('https://worker.test/form-check?form_url=' + encodeURIComponent('https://example.com/my-form') + '&spreadsheet_id=sheet-1')
+  );
+  const body = await response.json();
+  assert.equal(body.supported, false);
+  assert.equal(body.exists, null);
+});
+
+test('form-check 检测到开放表单且表格含表单响应工作表', async () => {
+  const pem = await generateTestPem();
+  const worker = loadWorker({
+    allowedSpreadsheetIds: 'sheet-1',
+    fetchImpl: formCheckFetchStub({ formStatus: 200, formHtml: FORM_HTML_OPEN }),
+    credentials: { privateKey: pem, clientEmail: 'sa@test.iam.gserviceaccount.com' },
+  });
+  const response = await worker.handle(
+    new Request('https://worker.test/form-check?form_url=' + encodeURIComponent('https://docs.google.com/forms/d/e/FORM123/viewform') + '&spreadsheet_id=sheet-1')
+  );
+  const body = await response.json();
+  assert.equal(body.supported, true);
+  assert.equal(body.exists, true);
+  assert.equal(body.acceptingResponses, true);
+  assert.equal(body.linkedLikely, true);
+  assert.equal(body.title, 'IFS Check-in');
+});
+
+test('form-check 检测到已停止收集回复', async () => {
+  const pem = await generateTestPem();
+  const worker = loadWorker({
+    allowedSpreadsheetIds: 'sheet-1',
+    fetchImpl: formCheckFetchStub({ formStatus: 200, formHtml: FORM_HTML_CLOSED }),
+    credentials: { privateKey: pem, clientEmail: 'sa@test.iam.gserviceaccount.com' },
+  });
+  const response = await worker.handle(
+    new Request('https://worker.test/form-check?form_url=' + encodeURIComponent('https://docs.google.com/forms/d/e/FORM123/viewform') + '&spreadsheet_id=sheet-1')
+  );
+  const body = await response.json();
+  assert.equal(body.exists, true);
+  assert.equal(body.acceptingResponses, false);
+});
+
+test('form-check 表单 404 返回 exists:false', async () => {
+  const pem = await generateTestPem();
+  const worker = loadWorker({
+    allowedSpreadsheetIds: 'sheet-1',
+    fetchImpl: formCheckFetchStub({ formStatus: 404 }),
+    credentials: { privateKey: pem, clientEmail: 'sa@test.iam.gserviceaccount.com' },
+  });
+  const response = await worker.handle(
+    new Request('https://worker.test/form-check?form_url=' + encodeURIComponent('https://docs.google.com/forms/d/e/GONE/viewform') + '&spreadsheet_id=sheet-1')
+  );
+  const body = await response.json();
+  assert.equal(body.exists, false);
+  assert.equal(body.linkedLikely, null);
+});
+
+test('form-check 表格无表单响应工作表时 linkedLikely:false', async () => {
+  const pem = await generateTestPem();
+  const worker = loadWorker({
+    allowedSpreadsheetIds: 'sheet-1',
+    fetchImpl: formCheckFetchStub({ sheetTitles: { sheets: [{ properties: { title: 'Data' } }] } }),
+    credentials: { privateKey: pem, clientEmail: 'sa@test.iam.gserviceaccount.com' },
+  });
+  const response = await worker.handle(
+    new Request('https://worker.test/form-check?form_url=' + encodeURIComponent('https://docs.google.com/forms/d/e/FORM123/viewform') + '&spreadsheet_id=sheet-1')
+  );
+  const body = await response.json();
+  assert.equal(body.exists, true);
+  assert.equal(body.linkedLikely, false);
+});
+
+test('form-check 表单页缺少 FB_PUBLIC_LOAD_DATA_ 时返回未知状态', async () => {
+  const pem = await generateTestPem();
+  const worker = loadWorker({
+    allowedSpreadsheetIds: 'sheet-1',
+    fetchImpl: formCheckFetchStub({ formHtml: '<html><body>consent page</body></html>' }),
+    credentials: { privateKey: pem, clientEmail: 'sa@test.iam.gserviceaccount.com' },
+  });
+  const response = await worker.handle(
+    new Request('https://worker.test/form-check?form_url=' + encodeURIComponent('https://docs.google.com/forms/d/e/FORM123/viewform') + '&spreadsheet_id=sheet-1')
+  );
+  const body = await response.json();
+  assert.equal(body.supported, true);
+  assert.equal(body.exists, null);
+  assert.equal(body.acceptingResponses, null);
 });

@@ -97,6 +97,7 @@ npx wrangler deploy
 
 *   `GET /data?spreadsheet_id=<id>&sheet_name=<tab>` — 返回名单（默认 tab 为 `Data`；读取 A1:L2000 范围，服务端边缘缓存 10 秒）
 *   `POST /verify?spreadsheet_id=<id>&agent_name=<name>&sheet_name=<tab>` — 切换该 Agent 的签到状态（A 列 TRUE/FALSE），成功后主动失效 `/data` 缓存
+*   `GET /form-check?spreadsheet_id=<id>&form_url=<url>` — 检查 Google 表单状态：存在性（公开页 404 探测）、是否停止收集回复、以及表格中是否存在「表单响应」工作表（关联关系启发式检测）；仅支持 Google Forms 链接，其他链接返回 `supported: false`
 
 ## 📂 项目结构
 

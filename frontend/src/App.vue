@@ -216,6 +216,60 @@ const onGlobalKeydown = (e: KeyboardEvent) => {
   }
 };
 
+// 签到表单状态检查：输入防抖后调用后端 /form-check
+type FormCheckState = 'idle' | 'checking' | 'ok' | 'closed' | 'notfound' | 'notlinked' | 'invalid' | 'failed';
+const formCheckState = ref<FormCheckState>('idle');
+let formCheckTimer: ReturnType<typeof setTimeout> | null = null;
+let formCheckSeq = 0;
+
+const isGoogleFormUrl = (url: string) => /^https:\/\/docs\.google\.com\/forms\/d(?:\/e)?\/[a-zA-Z0-9_-]+/.test(url);
+
+const checkFormStatus = async () => {
+  const url = checkinFormUrl.value.trim();
+  if (!url || !url.includes('docs.google.com')) {
+    formCheckState.value = 'idle';
+    return;
+  }
+  if (!isGoogleFormUrl(url)) {
+    formCheckState.value = 'invalid';
+    return;
+  }
+  if (!isSafeHttpUrl(apiBaseUrl.value) || !spreadsheetId.value) {
+    formCheckState.value = 'idle';
+    return;
+  }
+  const seq = ++formCheckSeq;
+  formCheckState.value = 'checking';
+  try {
+    const requestUrl = `${apiBaseUrl.value}/form-check?form_url=${encodeURIComponent(url)}&spreadsheet_id=${encodeURIComponent(spreadsheetId.value)}`;
+    const response = await fetch(requestUrl, { headers: { Accept: 'application/json' } });
+    const result = await response.json();
+    if (seq !== formCheckSeq) return;
+    if (result.supported === false) {
+      formCheckState.value = 'idle';
+    } else if (result.exists === false) {
+      formCheckState.value = 'notfound';
+    } else if (result.exists === true) {
+      if (result.acceptingResponses === false) {
+        formCheckState.value = 'closed';
+      } else if (result.linkedLikely === false) {
+        formCheckState.value = 'notlinked';
+      } else {
+        formCheckState.value = 'ok';
+      }
+    } else {
+      formCheckState.value = 'failed';
+    }
+  } catch {
+    if (seq === formCheckSeq) formCheckState.value = 'failed';
+  }
+};
+
+watch([checkinFormUrl, spreadsheetId], () => {
+  if (formCheckTimer) clearTimeout(formCheckTimer);
+  formCheckTimer = setTimeout(checkFormStatus, 600);
+});
+
 watch(showQRCode, (val) => {
   if (val) {
     window.addEventListener('keydown', onGlobalKeydown);
@@ -522,6 +576,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   cleanup();
+  if (formCheckTimer) clearTimeout(formCheckTimer);
   window.removeEventListener('keydown', onGlobalKeydown);
   window.removeEventListener('online', handleOnline);
   window.removeEventListener('offline', handleOffline);
@@ -628,6 +683,14 @@ onUnmounted(() => {
             <div class="mb-6">
               <label class="block text-sm font-medium text-[var(--color-text)] mb-2">{{ t('settings.checkinLabel') }}</label>
               <AppInput v-model="checkinFormUrl" placeholder="https://example.com/checkin-form" />
+              <p v-if="formCheckState !== 'idle'" class="mt-2 text-sm" :class="{
+                'text-[var(--color-text-secondary)]': formCheckState === 'checking',
+                'text-[var(--color-success)]': formCheckState === 'ok',
+                'text-[var(--color-warning)]': formCheckState === 'closed' || formCheckState === 'notlinked',
+                'text-[var(--color-danger)]': formCheckState === 'notfound' || formCheckState === 'invalid' || formCheckState === 'failed'
+              }">
+                {{ t('formCheck.' + formCheckState) }}
+              </p>
               <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
                 {{ t('settings.qrHint') }}
               </p>

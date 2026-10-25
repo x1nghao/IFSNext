@@ -179,9 +179,37 @@ async function findAgentInfo(spreadsheetId, sheetName, agentName) {
   };
 }
 
-// 更新 Google Sheets 中的字段
-async function updateSheetCell(spreadsheetId, sheetName, rowIndex, colLetter, value) {
+// 解析 Google Forms 链接，返回可公开访问的 viewform 地址；非 Google 表单返回 null
+function normalizeGoogleFormUrl(rawUrl) {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.hostname !== 'docs.google.com') return null;
+    const prefixMatch = parsed.pathname.match(/^\/forms\/d(?:\/e)?\/([a-zA-Z0-9_-]+)/);
+    if (!prefixMatch) return null;
+    return `https://docs.google.com${prefixMatch[0]}/viewform`;
+  } catch (e) {
+    return null;
+  }
+}
+
+// 读取表格全部工作表标题（用于检测「表单响应」tab 是否存在）
+async function getSheetTitles(spreadsheetId) {
   const token = await getAccessToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties.title`;
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('获取工作表列表失败:', response.status, error);
+    throw new Error(`获取工作表列表失败: HTTP ${response.status}`);
+  }
+  const data = await response.json();
+  return (data.sheets || []).map(s => s.properties && s.properties.title).filter(Boolean);
+}
+
+// 更新 Google Sheets 中的字段
+async function updateSheetCell(spreadsheetId, sheetName, rowIndex, colLetter, value) {  const token = await getAccessToken();
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${colLetter}${rowIndex}?valueInputOption=RAW`;
 
   const response = await fetch(url, {
@@ -325,6 +353,61 @@ async function handleRequest(event) {
       return jsonResponse({ status: 'success', message: updateResult, new_value: newValue });
     } catch (error) {
       console.error('/verify 处理失败:', error);
+      return jsonResponse({ error: error.message }, 500);
+    }
+  }
+
+  // 路由: 检查签到表单状态（存在性 / 是否收集中 / 是否已关联本表格）
+  if (url.pathname === '/form-check' && method === 'GET') {
+    try {
+      const formUrl = url.searchParams.get('form_url');
+      if (!formUrl) {
+        return jsonResponse({ error: 'Missing form_url' }, 400);
+      }
+
+      const result = { exists: null, acceptingResponses: null, title: null, linkedLikely: null, supported: false };
+
+      const normalized = normalizeGoogleFormUrl(formUrl);
+      if (normalized) {
+        result.supported = true;
+
+        let response = null;
+        try {
+          response = await fetch(normalized, { signal: AbortSignal.timeout(8000), redirect: 'follow' });
+        } catch (e) {
+          console.error('/form-check 表单页获取失败:', e);
+        }
+
+        if (response && response.status === 404) {
+          result.exists = false;
+        } else if (response && response.ok) {
+          const html = await response.text();
+          // 真实表单页必然内联 FB_PUBLIC_LOAD_DATA_；缺失说明拿到的是同意页/中间页，不做断言
+          if (html.includes('FB_PUBLIC_LOAD_DATA_')) {
+            result.exists = true;
+            // 「已停止收集回复」横幅的 class，与语言无关；非公开契约，仅作尽力检测
+            result.acceptingResponses = !html.includes('freebirdFormviewerViewResponseClosedMessage');
+            const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
+            if (titleMatch) {
+              result.title = titleMatch[1].replace(/\s*[-–]\s*Google.*$/i, '').trim() || null;
+            }
+          }
+        }
+
+        if (result.exists === true) {
+          try {
+            const titles = await getSheetTitles(spreadsheetId);
+            result.linkedLikely = titles.some(t => /^form responses/i.test(t) || t.includes('表单响应'));
+          } catch (e) {
+            console.error('/form-check 表格检查失败:', e);
+            result.linkedLikely = null;
+          }
+        }
+      }
+
+      return jsonResponse(result, 200, { 'Cache-Control': 'public, max-age=30' });
+    } catch (error) {
+      console.error('/form-check 处理失败:', error);
       return jsonResponse({ error: error.message }, 500);
     }
   }
