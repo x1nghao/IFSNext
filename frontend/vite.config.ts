@@ -34,6 +34,21 @@ export default defineConfig({
             purpose: 'any maskable'
           }
         ]
+      },
+      workbox: {
+        runtimeCaching: [
+          {
+            // 弱网/离线兜底：/data 请求优先走网络（3 秒超时），失败时回退最近一次缓存
+            urlPattern: ({ url }) => url.pathname === '/data',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'ifs-data-cache',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          }
+        ]
       }
     })
   ],

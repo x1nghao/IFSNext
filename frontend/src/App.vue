@@ -30,7 +30,25 @@ const saving = ref(false);
 const verificationLoadingMap = ref<Record<string, boolean>>({});
 const agents = ref<Agent[]>([]);
 const systemPrefersDark = ref(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-const isDark = computed(() => systemPrefersDark.value);
+
+// 主题模式：auto 跟随系统，light/dark 手动固定；setup 阶段同步恢复避免首帧闪烁
+type ThemeMode = 'auto' | 'light' | 'dark';
+const themeMode = ref<ThemeMode>('auto');
+try {
+  const savedTheme = localStorage.getItem('ifsnext_theme');
+  if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'auto') {
+    themeMode.value = savedTheme;
+  }
+} catch (e) {}
+const isDark = computed(() => (themeMode.value === 'auto' ? systemPrefersDark.value : themeMode.value === 'dark'));
+const setThemeMode = (mode: string) => {
+  themeMode.value = mode as ThemeMode;
+  try { localStorage.setItem('ifsnext_theme', mode); } catch (e) {}
+};
+
+const isOffline = ref(typeof navigator !== 'undefined' && !navigator.onLine);
+const handleOnline = () => { isOffline.value = false; };
+const handleOffline = () => { isOffline.value = true; };
 const operationLogs = reactive<Log[]>([]);
 const errorLogs = reactive<Log[]>([]);
 const showQRCode = ref(false);
@@ -503,11 +521,16 @@ onMounted(() => {
     canInstall.value = true;
     addLog('可安装为PWA应用');
   });
+
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
 });
 
 onUnmounted(() => {
   cleanup();
   window.removeEventListener('keydown', onGlobalKeydown);
+  window.removeEventListener('online', handleOnline);
+  window.removeEventListener('offline', handleOffline);
 });
 </script>
 
@@ -540,6 +563,11 @@ onUnmounted(() => {
       </div>
     </nav>
 
+    <!-- 离线提示横幅 -->
+    <div v-if="isOffline" class="bg-[var(--color-warning)] text-white text-sm text-center py-1.5 px-4 no-select">
+      {{ t('offline.banner') }}
+    </div>
+
     <!-- 主内容区域 -->
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 safe-pb">
       <!-- 设置页面 -->
@@ -547,6 +575,20 @@ onUnmounted(() => {
         <div class="card overflow-hidden">
           <div class="p-4 sm:p-6">
             <h2 class="title-text font-bold text-[var(--color-text)] mb-4">{{ t('settings.title') }}</h2>
+
+            <!-- 外观设置 -->
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-[var(--color-text)] mb-2">{{ t('theme.label') }}</label>
+              <AppSegmentedControl
+                :model-value="themeMode"
+                :options="[
+                  { label: t('theme.auto'), value: 'auto' },
+                  { label: t('theme.light'), value: 'light' },
+                  { label: t('theme.dark'), value: 'dark' }
+                ]"
+                @update:model-value="setThemeMode"
+              />
+            </div>
 
             <!-- 语言设置 -->
             <div class="mb-6">

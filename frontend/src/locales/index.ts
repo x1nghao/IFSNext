@@ -1,6 +1,8 @@
 export const messages = {
   'zh-CN': {
     nav: { settings: '设置', operations: '签到', install: '安装' },
+    theme: { label: '外观', auto: '自动', light: '浅色', dark: '深色' },
+    offline: { banner: '当前离线，展示的是最近一次缓存数据' },
     settings: {
       title: '系统设置',
       language: '语言',
@@ -53,6 +55,8 @@ export const messages = {
   },
   'en-US': {
     nav: { settings: 'Settings', operations: 'Check-in', install: 'Install' },
+    theme: { label: 'Appearance', auto: 'Auto', light: 'Light', dark: 'Dark' },
+    offline: { banner: 'Offline — showing last cached data' },
     settings: {
       title: 'Settings',
       language: 'Language',
@@ -105,6 +109,8 @@ export const messages = {
   },
   'zh-TW': {
     nav: { settings: '設定', operations: '簽到', install: '安裝' },
+    theme: { label: '外觀', auto: '自動', light: '淺色', dark: '深色' },
+    offline: { banner: '目前離線，顯示最近一次快取資料' },
     settings: {
       title: '系統設定',
       language: '語言',
