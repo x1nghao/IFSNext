@@ -710,7 +710,7 @@ onUnmounted(() => {
                 <span class="font-medium text-[var(--color-text)] tabular-nums">{{ t('stats.checkedIn') }} {{ agentStats.checkedIn }}/{{ agentStats.total }}（{{ checkedPercent }}%）</span>
                 <span v-if="lastUpdateText" class="text-xs text-[var(--color-text-secondary)] tabular-nums">{{ lastUpdateText }}</span>
               </div>
-              <div v-if="agentStats.resistance || agentStats.enlightened" class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+              <div v-if="agentStats.resistance || agentStats.enlightened" class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
                 <div v-if="agentStats.resistance">
                   <div class="flex justify-between text-xs mb-1 text-[var(--color-resistance-text)]">
                     <span>{{ t('stats.resistance') }}</span>
