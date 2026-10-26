@@ -6,9 +6,34 @@ export const extractSpreadsheetId = (input: string): string | null => {
   return match && match[1] ? match[1] : null;
 };
 
-export const filterAgents = (agents: Agent[], query: string): Agent[] => {
-  if (!query) return agents;
-  return agents.filter(agent => agent.AgentName.toLowerCase().includes(query.toLowerCase()));
+export type StatusFilter = 'all' | 'checked' | 'unchecked';
+export type FactionFilter = 'all' | 'Resistance' | 'Enlightened';
+
+export interface AgentFilters {
+  status?: StatusFilter;
+  faction?: FactionFilter;
+}
+
+export const hasActiveFilters = (filters: AgentFilters): boolean =>
+  (filters.status !== undefined && filters.status !== 'all') ||
+  (filters.faction !== undefined && filters.faction !== 'all');
+
+// 按搜索词与筛选条件过滤（仅本地显示，不触碰云端数据）；条件为空时原样返回
+export const filterAgents = (agents: Agent[], query: string, filters: AgentFilters = {}): Agent[] => {
+  let result = agents;
+  if (query) {
+    const q = query.toLowerCase();
+    result = result.filter(agent => agent.AgentName.toLowerCase().includes(q));
+  }
+  if (filters.status === 'checked') {
+    result = result.filter(agent => agent.PV === 'TRUE');
+  } else if (filters.status === 'unchecked') {
+    result = result.filter(agent => agent.PV !== 'TRUE');
+  }
+  if (filters.faction && filters.faction !== 'all') {
+    result = result.filter(agent => agent.AgentFaction === filters.faction);
+  }
+  return result;
 };
 
 export const getSortValue = (agent: Agent, key: string): string | number => {

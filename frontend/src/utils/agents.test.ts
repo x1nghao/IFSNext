@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strictEqual, deepStrictEqual, notStrictEqual } from 'node:assert/strict';
-import { extractSpreadsheetId, filterAgents, sortAgents, getSortValue, computeAgentStats } from './agents.ts';
+import { extractSpreadsheetId, filterAgents, sortAgents, getSortValue, computeAgentStats, hasActiveFilters } from './agents.ts';
 import type { Agent } from '../types';
 
 const makeAgent = (overrides: Partial<Agent>): Agent => ({
@@ -35,6 +35,44 @@ test('filterAgents 大小写不敏感匹配', () => {
   deepStrictEqual(filterAgents(agents, 'ALPH'), [agents[0]]);
   deepStrictEqual(filterAgents(agents, 'wolf'), [agents[0]]);
   deepStrictEqual(filterAgents(agents, 'zzz'), []);
+});
+
+test('filterAgents 按签到状态筛选', () => {
+  const agents = [
+    makeAgent({ AgentName: 'A', PV: 'TRUE' }),
+    makeAgent({ AgentName: 'B', PV: 'FALSE' }),
+    makeAgent({ AgentName: 'C', PV: 'false' }),
+  ];
+  deepStrictEqual(filterAgents(agents, '', { status: 'checked' }).map(a => a.AgentName), ['A']);
+  deepStrictEqual(filterAgents(agents, '', { status: 'unchecked' }).map(a => a.AgentName), ['B', 'C']);
+  deepStrictEqual(filterAgents(agents, '', { status: 'all' }).length, 3);
+});
+
+test('filterAgents 按阵营筛选', () => {
+  const agents = [
+    makeAgent({ AgentName: 'A', AgentFaction: 'Resistance' }),
+    makeAgent({ AgentName: 'B', AgentFaction: 'Enlightened' }),
+    makeAgent({ AgentName: 'C', AgentFaction: 'Unknown' }),
+  ];
+  deepStrictEqual(filterAgents(agents, '', { faction: 'Resistance' }).map(a => a.AgentName), ['A']);
+  deepStrictEqual(filterAgents(agents, '', { faction: 'Enlightened' }).map(a => a.AgentName), ['B']);
+});
+
+test('filterAgents 搜索与筛选条件叠加', () => {
+  const agents = [
+    makeAgent({ AgentName: 'Alpha', AgentFaction: 'Resistance', PV: 'TRUE' }),
+    makeAgent({ AgentName: 'Alpine', AgentFaction: 'Enlightened', PV: 'FALSE' }),
+    makeAgent({ AgentName: 'Beta', AgentFaction: 'Resistance', PV: 'FALSE' }),
+  ];
+  const result = filterAgents(agents, 'al', { status: 'unchecked', faction: 'Enlightened' });
+  deepStrictEqual(result.map(a => a.AgentName), ['Alpine']);
+});
+
+test('hasActiveFilters 判断筛选是否生效', () => {
+  strictEqual(hasActiveFilters({}), false);
+  strictEqual(hasActiveFilters({ status: 'all', faction: 'all' }), false);
+  strictEqual(hasActiveFilters({ status: 'checked' }), true);
+  strictEqual(hasActiveFilters({ faction: 'Resistance' }), true);
 });
 
 test('getSortValue 各排序键的取值', () => {
