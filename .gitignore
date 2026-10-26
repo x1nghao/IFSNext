@@ -41,3 +41,4 @@ coverage
 
 # Wrangler local state
 .wrangler
+.zcode

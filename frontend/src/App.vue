@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import QRCode from 'qrcode';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppCard from '@/components/ui/AppCard.vue';
 import AppSegmentedControl from '@/components/ui/AppSegmentedControl.vue';
-import type { Agent, Log, LotteryDrawRecord } from '@/types';
+import AppSpinner from '@/components/ui/AppSpinner.vue';
+import type { Agent, LotteryDrawRecord } from '@/types';
 import {
   extractSpreadsheetId,
   filterAgents,
@@ -60,8 +61,6 @@ const setThemeMode = (mode: string) => {
 const isOffline = ref(typeof navigator !== 'undefined' && !navigator.onLine);
 const handleOnline = () => { isOffline.value = false; };
 const handleOffline = () => { isOffline.value = true; };
-const operationLogs = reactive<Log[]>([]);
-const errorLogs = reactive<Log[]>([]);
 const showQRCode = ref(false);
 const cachedData = ref<Agent[]>([]);
 const lastUpdateTime = ref<number | null>(null);
@@ -119,14 +118,9 @@ let holdTimer: ReturnType<typeof setInterval> | null = null;
 let holdStart = 0;
 
 // Methods
-// 错误 Toast：addError 唯一的界面出口（历史 errorLogs 仅留档不渲染），4 秒自动消失
+// 错误 Toast：addError 是异常的唯一界面出口，4 秒自动消失
 const toast = ref<{ id: number; message: string } | null>(null);
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
-
-const addLog = (message: string) => {
-  operationLogs.unshift({ timestamp: new Date().toLocaleTimeString(), message });
-  if (operationLogs.length > 20) operationLogs.pop();
-};
 
 const dismissToast = () => {
   if (toastTimer) {
@@ -137,8 +131,6 @@ const dismissToast = () => {
 };
 
 const addError = (message: string) => {
-  errorLogs.unshift({ timestamp: new Date().toLocaleTimeString(), message });
-  if (errorLogs.length > 20) errorLogs.pop();
   toast.value = { id: Date.now(), message };
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
@@ -246,12 +238,11 @@ const installPWA = async () => {
   try {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    addLog(choice.outcome === 'accepted' ? t('log.installAccepted') : t('log.installCancelled'));
+    await deferredPrompt.userChoice;
     deferredPrompt = null;
     canInstall.value = false;
   } catch (e: any) {
-    addError(t('log.installFailed', { message: e.message }));
+    addError(t('error.installFailed', { message: e.message }));
   }
 };
 
@@ -367,7 +358,7 @@ const generateQRCode = async () => {
         errorCorrectionLevel: 'H'
       });
     } catch (err: any) {
-      addError(t('log.qrFailed', { message: err.message }));
+      addError(t('error.qrFailed', { message: err.message }));
     }
   }
 };
@@ -377,7 +368,9 @@ const safeCheckinFormUrl = computed(() => (isSafeHttpUrl(checkinFormUrl.value) ?
 
 const onGlobalKeydown = (e: KeyboardEvent) => {
   if (e.key === 'Escape') {
-    if (showQRCode.value) {
+    if (toast.value) {
+      dismissToast(); // 最顶层先关：错误 Toast 永远浮在弹窗与大屏之上
+    } else if (showQRCode.value) {
       showQRCode.value = false;
     } else if (lotteryDrawState.value) {
       closeLotteryModal();
@@ -458,7 +451,7 @@ watch([spreadsheetId, apiBaseUrl, checkinFormUrl, lotteryEnabled, undoHoldRequir
       undoHoldRequired: hold !== false
     }));
   } catch (e: any) {
-    addError(t('log.settingsAutoSaveFailed', { message: e.message }));
+    addError(t('error.settingsAutoSaveFailed', { message: e.message }));
   }
 });
 
@@ -475,7 +468,6 @@ const setLotteryEnabled = (val: string) => {
     closeLotteryModal();
     if (currentView.value === 'lottery') currentView.value = 'operations';
   }
-  addLog(lotteryEnabled.value ? t('log.lotteryEnabled') : t('log.lotteryDisabled'));
 };
 
 const loadSettings = () => {
@@ -490,7 +482,7 @@ const loadSettings = () => {
       undoHoldRequired.value = settings.undoHoldRequired !== false; // 默认开
     }
   } catch (e: any) {
-    addError(t('log.settingsLoadFailed', { message: e.message }));
+    addError(t('error.settingsLoadFailed', { message: e.message }));
   }
 
   if (spreadsheetId.value && agents.value.length === 0) {
@@ -500,24 +492,22 @@ const loadSettings = () => {
 
 const loadData = async (useCache = false, silent = false) => {
   if (!spreadsheetId.value) {
-    addError(t('log.needSheetId'));
+    addError(t('error.needSheetId'));
     return;
   }
   if (useCache && cachedData.value.length > 0 && lastUpdateTime.value) {
     const timeDiff = Date.now() - lastUpdateTime.value;
     if (timeDiff < 30000) {
       agents.value = [...cachedData.value];
-      addLog(t('log.usedCache'));
       return;
     }
   }
   if (!silent) {
     loading.value = true;
-    addLog(t('log.loadStart'));
   }
   try {
     if (!isSafeHttpUrl(apiBaseUrl.value)) {
-      throw new Error(t('log.invalidApiUrl'));
+      throw new Error(t('error.invalidApiUrl'));
     }
     const requestUrl = `${apiBaseUrl.value}/data?spreadsheet_id=${encodeURIComponent(spreadsheetId.value)}`;
     const response = await fetch(requestUrl, {
@@ -535,12 +525,11 @@ const loadData = async (useCache = false, silent = false) => {
       cachedData.value = [...data];
       lastUpdateTime.value = Date.now();
       recordSheetRecent(spreadsheetId.value);
-      addLog(t('log.loaded', { n: data.length }));
     } else {
-      throw new Error(t('log.invalidResponse'));
+      throw new Error(t('error.invalidResponse'));
     }
   } catch (error: any) {
-    addError(t('log.loadFailed', { message: error.message }));
+    addError(t('error.loadFailed', { message: error.message }));
     console.error('API调用错误:', error);
   } finally {
     if (!silent) {
@@ -568,7 +557,7 @@ const applyPv = (agent: Agent, pv: string) => {
 
 const toggleVerification = async (agent: Agent) => {
   if (!spreadsheetId.value) {
-    addError(t('log.needSheetId'));
+    addError(t('error.needSheetId'));
     return;
   }
   if (verificationLoadingMap.value[agent.AgentName]) {
@@ -576,7 +565,6 @@ const toggleVerification = async (agent: Agent) => {
   }
 
   verificationLoadingMap.value[agent.AgentName] = true;
-  addLog(agent.PV === 'TRUE' ? t('log.undoingAgent', { name: agent.AgentName }) : t('log.checkingAgent', { name: agent.AgentName }));
   const originalStatus = agent.PV;
   const newStatus = agent.PV === 'TRUE' ? 'FALSE' : 'TRUE';
 
@@ -607,18 +595,16 @@ const toggleVerification = async (agent: Agent) => {
         } else {
           removeAgentModifiedTimeEntry(spreadsheetId.value, agent.AgentName);
         }
-        addLog(t('log.verifyConflict', { name: agent.AgentName }));
       } else {
-        addLog(originalStatus === 'TRUE' ? t('log.undoDone', { name: agent.AgentName }) : t('log.checkDone', { name: agent.AgentName }));
       }
     } else {
-      throw new Error(result.message || t('log.verifyFailed', { message: `HTTP ${response.status}` }));
+      throw new Error(result.message || t('error.verifyFailed', { message: `HTTP ${response.status}` }));
     }
   } catch (error: any) {
     applyPv(agent, originalStatus);
     // 回滚乐观更新时记录的修改时间，避免显示从未生效的时间戳
     removeAgentModifiedTimeEntry(spreadsheetId.value, agent.AgentName);
-    addError(t('log.verifyFailed', { message: error.message }));
+    addError(t('error.verifyFailed', { message: error.message }));
     console.error('签到 API 调用错误:', error);
   } finally {
     verificationLoadingMap.value[agent.AgentName] = false;
@@ -663,14 +649,12 @@ const onUndoButtonClick = (e: MouseEvent, agent: Agent) => {
 
 const clearSearch = () => {
   searchQuery.value = '';
-  addLog(t('log.searchCleared'));
 };
 
 // 一键复位两组筛选（计数芯片与三横线指示点随之消失）
 const clearFilters = () => {
   statusFilter.value = 'all';
   factionFilter.value = 'all';
-  addLog(t('filter.clear'));
 };
 
 watch(spreadsheetId, (newVal) => {
@@ -678,7 +662,6 @@ watch(spreadsheetId, (newVal) => {
   const extracted = extractSpreadsheetId(newVal);
   if (extracted) {
     spreadsheetId.value = extracted;
-    addLog(t('log.sheetIdExtracted'));
   }
 });
 
@@ -763,45 +746,27 @@ const generateKioskQR = async () => {
     canvas.style.width = '';
     canvas.style.height = '';
   } catch (err: any) {
-    if (seq === kioskQrSeq) addError(t('log.qrFailed', { message: err.message }));
+    if (seq === kioskQrSeq) addError(t('error.qrFailed', { message: err.message }));
   }
 };
 
-// 名单是否溢出面板要渲染后才知道：逐块测量，溢出才启用无缝滚动。
+// 名单是否溢出面板要渲染后才知道：逐面板测一次自然高，溢出才启用无缝滚动。
 // 滚动需要"双拷贝"实现无缝循环；静止时不渲染第二份拷贝，避免少人数面板出现重复名单。
+// 人数不足以填满面板时整体向上对齐、行距恒定、留白沉底；这里只读不写样式，测量与布局彻底解耦。
 const marqueeScrolling = ref({ unchecked: false, checked: false });
-const kioskGapStyle = ref<{ unchecked: string | null; checked: string | null }>({ unchecked: null, checked: null });
 const updateKioskMarquees = async () => {
   await nextTick();
   const next = { unchecked: false, checked: false };
-  const gaps: { unchecked: string | null; checked: string | null } = { unchecked: null, checked: null };
   document.querySelectorAll<HTMLElement>('.kiosk-marquee').forEach((box) => {
     const track = box.querySelector<HTMLElement>('.kiosk-marquee-track');
     if (!track) return;
     const key = box.closest('.kiosk-panel-unchecked') ? 'unchecked' : 'checked';
     const chips = track.querySelector<HTMLElement>('.kiosk-chips');
     if (!chips) return;
-    // 先把行间距复位到标准值再测量：上一轮写大的 --chips-gap 会污染 scrollHeight
-    chips.style.setProperty('--chips-gap', '');
-    const naturalH = chips.scrollHeight; // 标准 gap 下的内容自然高（单拷贝）
-    const availH = box.clientHeight;
-    const scrolling = naturalH > availH + 1;
-    next[key] = scrolling;
-    box.classList.toggle('is-scrolling', scrolling);
-    if (scrolling) {
-      gaps[key] = null; // 溢出：标准间距 + 双拷贝滚动
-    } else {
-      // 未满：把可视高均分给行间隙，密度均匀铺满
-      const baseGap = parseFloat(getComputedStyle(chips).rowGap) || 10;
-      const firstChip = chips.firstElementChild;
-      const rowH = firstChip ? firstChip.getBoundingClientRect().height : 40;
-      const rows = Math.max(1, Math.round((naturalH + baseGap) / (rowH + baseGap)));
-      const even = rows > 1 ? (availH - naturalH) / (rows - 1) : 0;
-      gaps[key] = `${Math.min(baseGap + Math.max(0, even), baseGap * 5)}px`;
-    }
+    next[key] = chips.scrollHeight > box.clientHeight + 1;
+    box.classList.toggle('is-scrolling', next[key]);
   });
   marqueeScrolling.value = next;
-  kioskGapStyle.value = gaps;
 };
 
 const handleKioskResize = () => {
@@ -925,7 +890,6 @@ const drawLottery = async () => {
   const sid = spreadsheetId.value || 'default';
   lotteryHistory.value = { ...lotteryHistory.value, [sid]: [entry, ...(lotteryHistory.value[sid] || [])] };
   persistLotteryHistory();
-  addLog(t('log.lotteryDrew', { names: winners.join('、') }));
 
   const seq = ++lotteryRunSeq;
   lotteryDrawState.value = {
@@ -967,7 +931,6 @@ const clearLotteryHistory = () => {
   if (!spreadsheetId.value) return;
   lotteryHistory.value = { ...lotteryHistory.value, [spreadsheetId.value]: [] };
   persistLotteryHistory();
-  addLog(t('log.lotteryCleared'));
 };
 
 const setAutoRefresh = (mode: string) => {
@@ -981,7 +944,7 @@ const setAutoRefresh = (mode: string) => {
     case 'slow': interval = 60000; break;
     case 'medium': interval = 10000; break;
     case 'fast': interval = 3000; break;
-    default: addLog(t('log.autoRefreshOff')); return;
+    default: return;
   }
   autoRefreshTimer.value = setInterval(async () => {
     if (currentView.value !== 'operations') return; // 非操作页不刷新
@@ -989,20 +952,13 @@ const setAutoRefresh = (mode: string) => {
       isRefreshing.value = true;
       try {
         await loadData(false, true);
-        addLog(t('log.autoRefreshDone'));
       } catch (error: any) {
-        addError(t('log.autoRefreshFailed', { message: error.message }));
+        addError(t('error.autoRefreshFailed', { message: error.message }));
       } finally {
         isRefreshing.value = false;
       }
     }
   }, interval);
-  const modeNames: Record<string, string> = {
-    slow: t('autorefresh.slow'),
-    medium: t('autorefresh.medium'),
-    fast: t('autorefresh.fast'),
-  };
-  addLog(t('log.autoRefreshSet', { mode: modeNames[mode] }));
 };
 
 const cleanup = () => {
@@ -1062,14 +1018,12 @@ onMounted(() => {
   updateRosterColumnCount();
   rosterMqlWide.addEventListener('change', updateRosterColumnCount);
   rosterMqlMid.addEventListener('change', updateRosterColumnCount);
-  addLog(t('log.appReady'));
 
   // PWA Install Prompt
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     canInstall.value = true;
-    addLog(t('log.canInstall'));
   });
 
   window.addEventListener('online', handleOnline);
@@ -1137,7 +1091,7 @@ onUnmounted(() => {
     </nav>
 
     <!-- 离线提示横幅 -->
-    <div v-if="isOffline" class="bg-[var(--color-warning)] text-white text-sm text-center py-1.5 px-4 no-select">
+    <div v-if="isOffline" class="bg-[var(--color-warning-tint-bg)] text-[var(--color-warning-tint-text)] text-sm text-center py-1.5 px-4 no-select">
       {{ t('offline.banner') }}
     </div>
 
@@ -1145,8 +1099,7 @@ onUnmounted(() => {
     <main class="max-w-7xl mx-auto py-4 sm:px-6 lg:px-8 tabbar-space">
       <!-- 设置页面 -->
       <div v-if="currentView === 'settings'" class="px-4 py-6 sm:px-0">
-        <div class="card overflow-hidden">
-          <div class="p-4 sm:p-6">
+        <AppCard class="overflow-hidden">
             <h2 class="title-text font-bold text-[var(--color-text)] mb-4">{{ t('settings.title') }}</h2>
 
             <!-- 表格 ID（每场活动都要核对，置于最前） -->
@@ -1193,9 +1146,9 @@ onUnmounted(() => {
               <AppInput v-model="checkinFormUrl" placeholder="https://example.com/checkin-form" />
               <p v-if="formCheckState !== 'idle'" class="mt-2 text-sm" :class="{
                 'text-[var(--color-text-secondary)]': formCheckState === 'checking',
-                'text-[var(--color-success)]': formCheckState === 'ok',
-                'text-[var(--color-warning)]': formCheckState === 'closed' || formCheckState === 'notlinked',
-                'text-[var(--color-danger)]': formCheckState === 'notfound' || formCheckState === 'invalid' || formCheckState === 'failed'
+                'text-[var(--color-success-badge-text)]': formCheckState === 'ok',
+                'text-[var(--color-warning-tint-text)]': formCheckState === 'closed' || formCheckState === 'notlinked',
+                'text-[var(--color-danger-badge-text)]': formCheckState === 'notfound' || formCheckState === 'invalid' || formCheckState === 'failed'
               }">
                 {{ t('formCheck.' + formCheckState) }}
               </p>
@@ -1238,7 +1191,7 @@ onUnmounted(() => {
 
             <!-- 自动刷新设置 -->
             <div class="mb-6">
-              <h3 class="text-md font-medium text-[var(--color-text)]">{{ t('autorefresh.title') }}</h3>
+              <h3 class="text-base font-semibold text-[var(--color-text)]">{{ t('autorefresh.title') }}</h3>
               <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ t('autorefresh.hint') }}</p>
               <div class="mt-3 flex items-center gap-3">
                 <select v-model="autoRefreshMode" @change="setAutoRefresh(autoRefreshMode)" class="app-select">
@@ -1284,16 +1237,14 @@ onUnmounted(() => {
                 @update:model-value="setLocale"
               />
             </div>
-          </div>
-        </div>
+          </AppCard>
       </div>
 
       <!-- 抽奖页面：中奖榜常驻首屏（窄屏在抽奖区上方、宽屏在侧边），开奖演示用全屏弹窗 -->
       <div v-else-if="currentView === 'lottery'" class="px-4 py-6 sm:px-0">
         <div class="lottery-layout">
           <!-- 常驻中奖榜：数据源是最新一条抽奖记录，开奖后立即更新 -->
-          <div class="card overflow-hidden lottery-board">
-            <div class="p-4 sm:p-6">
+          <AppCard class="overflow-hidden lottery-board">
               <div class="flex flex-wrap items-baseline justify-between gap-x-3 mb-3">
                 <h2 class="title-text font-bold text-[var(--color-text)]">{{ t('lottery.boardTitle') }}</h2>
                 <span v-if="latestDraw" class="text-xs text-[var(--color-text-secondary)] tabular-nums">
@@ -1307,12 +1258,10 @@ onUnmounted(() => {
                 </div>
               </div>
               <p v-else class="lottery-board-empty">{{ t('lottery.boardEmpty') }}</p>
-            </div>
-          </div>
+          </AppCard>
 
           <!-- 抽奖控制区 -->
-          <div class="card overflow-hidden">
-            <div class="p-4 sm:p-6">
+          <AppCard class="overflow-hidden">
               <h2 class="title-text font-bold text-[var(--color-text)] mb-1">{{ t('lottery.title') }}</h2>
               <p class="text-sm text-[var(--color-text-secondary)]">
                 <template v-if="agents.length">{{ t('lottery.eligible', { n: eligiblePool.length }) }}<span v-if="lastUpdateText"> · {{ lastUpdateText }}</span></template>
@@ -1328,14 +1277,13 @@ onUnmounted(() => {
                     {{ t('lottery.seedRandom') }}
                   </AppButton>
                 </div>
-                <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ t('lottery.seedHint') }}</p>
               </div>
 
               <!-- 抽取人数 -->
               <div class="mb-5">
                 <label class="block text-sm font-medium text-[var(--color-text)] mb-2">{{ t('lottery.countLabel') }}</label>
                 <AppInput v-model="lotteryCount" type="number" min="1" inputmode="numeric" />
-                <p v-if="lotteryNotEnough" class="mt-2 text-sm text-[var(--color-warning)]">
+                <p v-if="lotteryNotEnough" class="mt-2 text-sm text-[var(--color-warning-tint-text)]">
                   {{ t('lottery.notEnough', { n: eligiblePool.length }) }}
                 </p>
               </div>
@@ -1366,21 +1314,19 @@ onUnmounted(() => {
               <AppButton block :disabled="!canDraw || !!lotteryDrawState" @click="drawLottery">
                 {{ t('lottery.draw') }}
               </AppButton>
-              <p v-if="agents.length && !eligiblePool.length" class="mt-2 text-sm text-[var(--color-warning)]">
+              <p v-if="agents.length && !eligiblePool.length" class="mt-2 text-sm text-[var(--color-warning-tint-text)]">
                 {{ t('lottery.emptyPool') }}
               </p>
-            </div>
-          </div>
+          </AppCard>
         </div>
 
         <!-- 抽奖记录：恒常显示，无记录时给出空态 -->
-        <div class="card mt-6 overflow-hidden">
-          <div class="p-4 sm:p-6">
+        <AppCard class="mt-6 overflow-hidden">
             <div class="flex items-center justify-between mb-3">
-              <h3 class="text-md font-medium text-[var(--color-text)]">{{ t('lottery.history') }}</h3>
+              <h3 class="text-base font-semibold text-[var(--color-text)]">{{ t('lottery.history') }}</h3>
               <AppButton v-if="currentSheetDraws.length" variant="ghost" size="small" @click="clearLotteryHistory">{{ t('lottery.clearHistory') }}</AppButton>
             </div>
-            <div v-if="currentSheetDraws.length" class="lottery-history">
+            <div v-if="currentSheetDraws.length">
               <div v-for="entry in currentSheetDraws" :key="entry.at" class="lottery-history-row">
                 <div class="text-xs text-[var(--color-text-secondary)] tabular-nums">
                   {{ formatDrawTime(entry.at) }} · {{ t('lottery.seedLabel') }} <span class="font-id">{{ entry.seed }}</span> · {{ entry.winners.length }}{{ t('list.countSuffix') }}
@@ -1389,8 +1335,7 @@ onUnmounted(() => {
               </div>
             </div>
             <p v-else class="text-sm text-[var(--color-text-secondary)]">{{ t('lottery.historyEmpty') }}</p>
-          </div>
-        </div>
+          </AppCard>
       </div>
 
       <!-- 操作页面 -->
@@ -1405,8 +1350,7 @@ onUnmounted(() => {
         </div>
 
         <!-- 操作控制面板 -->
-        <div class="card mb-6 overflow-hidden">
-          <div class="p-4 sm:p-6">
+        <AppCard class="mb-6 overflow-hidden">
             <div class="flex items-center justify-between gap-3 mb-4 flex-nowrap">
               <!-- 搜索框 -->
               <div class="relative flex-1 min-w-0 sm:min-w-[240px]">
@@ -1414,8 +1358,10 @@ onUnmounted(() => {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"></path>
                 </svg>
                 <AppInput v-model="searchQuery" :placeholder="t('search.placeholder')" :has-icon="true" />
-                <button v-if="searchQuery" @click="clearSearch" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
-                  ✕
+                <button v-if="searchQuery" @click="clearSearch" :aria-label="t('common.clear')" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
                 </button>
               </div>
 
@@ -1458,7 +1404,9 @@ onUnmounted(() => {
               <Transition name="fade">
                 <button v-if="filtersActive" class="filter-count-chip" :title="t('filter.clear')" @click="clearFilters">
                   <span class="tabular-nums">{{ t('list.countPrefix') }} {{ filteredAgents.length }} {{ t('list.countSuffix') }}</span>
-                  <span aria-hidden="true">✕</span>
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
                 </button>
               </Transition>
             </div>
@@ -1488,7 +1436,7 @@ onUnmounted(() => {
             </Transition>
 
             <!-- 签到进度统计 -->
-            <div v-if="agentStats.total" class="mt-4 rounded-[12px] bg-[var(--color-control-bg)] dark:bg-[var(--color-control-bg-dark)] p-3">
+            <div v-if="agentStats.total" class="mt-4 rounded-[var(--radius-control)] bg-[var(--color-control-bg)] dark:bg-[var(--color-control-bg-dark)] p-3">
               <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span class="font-medium text-[var(--color-text)]">{{ t('stats.total') }} {{ agentStats.total }}</span>
                 <span class="font-medium text-[var(--color-text)] tabular-nums">{{ t('stats.checkedIn') }} {{ agentStats.checkedIn }}/{{ agentStats.total }}（{{ checkedPercent }}%）</span>
@@ -1515,13 +1463,11 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </AppCard>
 
 
         <!-- 数据展示区域 -->
-        <div class="card overflow-hidden">
-          <div class="p-4 sm:p-6">
+        <AppCard class="overflow-hidden">
             <!-- 加载状态 -->
             <div v-if="loading" class="text-center py-8">
               <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary)] mx-auto"></div>
@@ -1572,7 +1518,9 @@ onUnmounted(() => {
                         class="hold-ring"
                         :style="{ '--hold-progress': String(pressState.progress ?? 0) }"
                         aria-hidden="true"
-                      ></span>
+                      >
+                        <svg><rect pathLength="1" /></svg>
+                      </span>
                       <button
                         class="agent-action"
                         :class="{
@@ -1589,7 +1537,7 @@ onUnmounted(() => {
                         @contextmenu.prevent
                         @click="onUndoButtonClick($event, agent)"
                       >
-                        <span v-if="verificationLoadingMap[agent.AgentName]" class="inline-block animate-spin mr-1">⌛</span>
+                        <AppSpinner v-if="verificationLoadingMap[agent.AgentName]" class="mr-1 inline-block h-3 w-3" />
                         {{ t('actions.uncheck') }}
                       </button>
                     </span>
@@ -1600,7 +1548,7 @@ onUnmounted(() => {
                       :class="[getActionButtonClass(agent), { 'opacity-50 cursor-not-allowed': verificationLoadingMap[agent.AgentName] }]"
                       :disabled="verificationLoadingMap[agent.AgentName]"
                     >
-                      <span v-if="verificationLoadingMap[agent.AgentName]" class="inline-block animate-spin mr-1">⌛</span>
+                      <AppSpinner v-if="verificationLoadingMap[agent.AgentName]" class="mr-1 inline-block h-3 w-3" />
                       {{ t('actions.check') }}
                     </button>
                     <button
@@ -1610,7 +1558,7 @@ onUnmounted(() => {
                       :class="{ 'opacity-50 cursor-not-allowed': verificationLoadingMap[agent.AgentName] }"
                       :disabled="verificationLoadingMap[agent.AgentName]"
                     >
-                      <span v-if="verificationLoadingMap[agent.AgentName]" class="inline-block animate-spin mr-1">⌛</span>
+                      <AppSpinner v-if="verificationLoadingMap[agent.AgentName]" class="mr-1 inline-block h-3 w-3" />
                       {{ t('actions.uncheck') }}
                     </button>
                   </div>
@@ -1618,24 +1566,23 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </AppCard>
 
         <!-- 二维码弹窗 -->
-        <div v-if="showQRCode" class="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" @click="showQRCode = false">
-          <AppCard class="w-full max-w-md shadow-xl" role="dialog" aria-modal="true" @click.stop>
+        <div v-if="showQRCode" class="modal-overlay" @click="showQRCode = false">
+          <AppCard class="w-full max-w-md" role="dialog" aria-modal="true" @click.stop>
             <!-- 头部 -->
             <div class="flex justify-between items-center mb-6">
               <div class="flex items-center space-x-3">
-                <div class="w-11 h-11 rounded-[14px] flex items-center justify-center bg-white/60 dark:bg-white/10">
-                  <svg class="w-6 h-6 text-[var(--color-primary)] dark:text-[var(--color-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <div class="w-10 h-10 rounded-[var(--radius-tile)] flex items-center justify-center bg-white/60 dark:bg-white/10">
+                  <svg class="w-5 h-5 text-[var(--color-primary)] dark:text-[var(--color-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
                   </svg>
                 </div>
                 <h3 class="text-lg font-semibold text-[var(--color-text)]">{{ t('qr.title') }}</h3>
               </div>
-              <button @click="showQRCode = false" class="w-8 h-8 rounded-full bg-[var(--color-control-bg)] dark:bg-[var(--color-control-bg-dark)] hover:bg-[var(--color-control-bg-strong)] dark:hover:bg-[var(--color-control-bg-strong-dark)] flex items-center justify-center transition-colors duration-200">
-                <svg class="w-4 h-4 text-[var(--color-text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button @click="showQRCode = false" class="ifs-iconbtn" :aria-label="t('common.close')" :title="t('common.close')">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
               </button>
@@ -1644,8 +1591,7 @@ onUnmounted(() => {
             <!-- 二维码容器 -->
             <div class="flex justify-center mb-6">
               <div class="qr-panel">
-                <!-- Replaced div with canvas -->
-                <canvas ref="qrcodeCanvas" class="bg-white rounded-lg p-2 shadow-sm"></canvas>
+                <canvas ref="qrcodeCanvas"></canvas>
               </div>
             </div>
 
@@ -1673,7 +1619,7 @@ onUnmounted(() => {
     <!-- 开奖高亮弹窗：滚动 → 逐名揭示 → 完成；结果已先行落账，随时可关 -->
     <div
       v-if="lotteryDrawState"
-      class="lottery-modal"
+      class="modal-overlay"
       role="dialog"
       aria-modal="true"
       :aria-label="t('lottery.title')"
@@ -1693,7 +1639,7 @@ onUnmounted(() => {
         <div v-if="lotteryDrawState.phase === 'rolling'" class="lottery-rolling" :class="factionClass(lotteryDrawState.currentName)">
           {{ lotteryDrawState.currentName }}
         </div>
-        <div v-else class="lottery-modal-winners">
+        <div v-else class="lottery-modal-winners" :class="{ 'is-single': lotteryDrawState.winners.length === 1 }">
           <div
             v-for="(name, i) in lotteryDrawState.winners.slice(0, lotteryDrawState.revealed)"
             :key="name"
@@ -1740,7 +1686,7 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <div class="kiosk-body" :style="{ ...kioskPanelStyle, ...Object.fromEntries(Object.entries({ '--gap-unchecked': kioskGapStyle.unchecked, '--gap-checked': kioskGapStyle.checked }).filter(([, v]) => v !== null)) }">
+      <div class="kiosk-body" :style="kioskPanelStyle">
         <!-- 左列（窄屏时为顶部区块）：签到统计 + 签到二维码 -->
         <div class="kiosk-left">
           <section class="kiosk-stats" :aria-label="t('stats.checkedIn')">
@@ -1906,7 +1852,7 @@ onUnmounted(() => {
 
       <div class="kiosk-foot">
         <span v-if="lastUpdateText">{{ lastUpdateText }}</span>
-        <span class="kiosk-brand">IFSNext</span>
+        <span>IFSNext</span>
       </div>
     </div>
   </div>

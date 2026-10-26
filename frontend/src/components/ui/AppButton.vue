@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import AppSpinner from '@/components/ui/AppSpinner.vue';
 
 interface Props {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -30,10 +31,10 @@ const classes = computed(() => {
   };
 
   const variants = {
-    primary: 'relative overflow-hidden text-white bg-[rgba(20,163,174,0.8)] backdrop-blur-xl backdrop-saturate-150 border border-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_4px_16px_rgba(20,163,174,0.4)] hover:bg-[rgba(20,163,174,0.88)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_6px_22px_rgba(20,163,174,0.5)] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_2px_10px_rgba(20,163,174,0.35)] dark:bg-[rgba(15,140,150,0.5)] dark:border-white/15 dark:hover:bg-[rgba(15,140,150,0.6)]',
-    secondary: 'bg-[var(--color-control-bg)] text-[var(--color-primary)] hover:bg-[var(--color-control-bg-strong)] backdrop-blur-md dark:bg-[var(--color-control-bg-dark)] dark:text-white',
-    danger: 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50',
-    ghost: 'bg-transparent text-[var(--color-primary)] hover:bg-[var(--color-control-bg)] dark:text-[var(--color-primary)]',
+    primary: 'relative overflow-hidden text-white bg-[var(--color-accent-fill)] shadow-[var(--shadow-accent)] hover:bg-[var(--color-accent-fill-hover)]',
+    secondary: 'bg-[var(--color-control-bg)] text-[var(--color-primary)] hover:bg-[var(--color-control-bg-strong)] dark:text-[var(--color-text)]',
+    danger: 'bg-[var(--color-danger-badge-bg)] text-[var(--color-danger-badge-text)]',
+    ghost: 'bg-transparent text-[var(--color-primary)] hover:bg-[var(--color-control-bg)]',
   };
 
   return [
@@ -53,10 +54,7 @@ const classes = computed(() => {
     :disabled="disabled || loading"
     @click="emit('click', $event)"
   >
-    <svg v-if="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-    </svg>
+    <AppSpinner v-if="loading" class="-ml-1 mr-2 h-4 w-4" />
     <slot></slot>
   </button>
 </template>

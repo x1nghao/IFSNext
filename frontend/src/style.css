@@ -2,7 +2,6 @@
 @import "@fontsource/inter/latin-500.css";
 @import "@fontsource/inter/latin-600.css";
 @import "@fontsource/inter/latin-700.css";
-@import "@fontsource/jetbrains-mono/latin-400.css";
 @import "tailwindcss";
 
 /* 基于 .dark class 的暗色变体：配合应用内手动外观切换（自动/浅色/深色） */
@@ -24,7 +23,7 @@
 /* ═══ 设计令牌 ═══
    遵循 Apple Liquid Glass 两层模型：
    - 内容层（卡片/列表/控件）：标准实色材质，安静可读
-   - 导航层（顶栏/底部 Tab 栏）：唯一的 Liquid Glass 悬浮层 */
+   - 导航层（顶栏/底部 Tab 栏/大屏图例）：唯一的 Liquid Glass 悬浮层 */
 :root {
     --color-primary: #14a3ae;
     --color-primary-strong: #0d7d87;
@@ -45,6 +44,7 @@
     --chrome-border-dark: rgba(255, 255, 255, 0.12);
     --chrome-shine: rgba(255, 255, 255, 0.85);
     --chrome-shine-dark: rgba(255, 255, 255, 0.22);
+    --glass-blur: 30px;
 
     /* 内容层控件：iOS 中性填充 */
     --color-control-bg: rgba(120, 120, 128, 0.12);
@@ -55,16 +55,25 @@
     --color-separator: rgba(60, 60, 67, 0.14);
     --color-text: #10242a;
     --color-text-secondary: #5f7278;
-    --color-bg: #eef3f4;
+    /* 画布底色：body 与大屏覆盖层共用；输入控件焦点态用 field-focus */
+    --color-bg: #f2f6f7;
+    --color-field-focus-bg: #eef3f4;
 
-    --color-success: #2fae62;
+    --color-success: #34c759;
     --color-warning: #f59e0b;
     --color-danger: #ff453a;
 
-    --color-success-badge-bg: rgba(47, 174, 98, 0.15);
+    --color-success-badge-bg: rgba(52, 199, 89, 0.15);
     --color-success-badge-text: #0f6b37;
     --color-danger-badge-bg: rgba(255, 69, 58, 0.13);
     --color-danger-badge-text: #b3231b;
+
+    /* 警示 tint 面（告警条/横幅/提示小字）：浅琥珀底深琥珀字，保证对比度 */
+    --color-warning-tint-bg: rgba(245, 158, 11, 0.15);
+    --color-warning-tint-text: #92400e;
+    /* 一等奖金色强调（与警示同源琥珀，语义为奖励而非警示） */
+    --color-gold-bg: rgba(245, 158, 11, 0.18);
+    --color-gold-text: #b45309;
 
     --color-resistance: #2563eb;
     --color-resistance-bg: rgba(37, 99, 235, 0.12);
@@ -79,12 +88,33 @@
     --action-enlightened-bg: rgba(22, 163, 74, 0.13);
     --action-enlightened-text: #15803d;
 
+    /* 主色实心填充：主按钮与行内主操作共用（内容层实色，不用玻璃） */
+    --color-accent-fill: rgba(20, 163, 174, 0.8);
+    --color-accent-fill-hover: rgba(20, 163, 174, 0.88);
+    --shadow-accent: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 4px 16px rgba(20, 163, 174, 0.4);
+
+    /* 分段控件/筛选钮激活态：同一枚「浮起白块」 */
+    --color-segment-active-bg: rgba(255, 255, 255, 0.92);
+    --shadow-segment-active: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+
     /* 阴影：内容卡轻投影，导航层深投影 */
     --shadow-card: 0 1px 3px rgba(16, 42, 48, 0.06), 0 4px 14px rgba(16, 42, 48, 0.05);
     --shadow-chrome: 0 12px 36px rgba(16, 42, 48, 0.16), 0 2px 8px rgba(16, 42, 48, 0.08);
-    --shadow-hover: 0 8px 24px rgba(16, 42, 48, 0.12);
 
+    /* 圆角阶梯：6 标签 / 10 分段 / 12 控件 / 16 面板砖 / 20 卡片；胶囊用 999px */
+    --radius-tag: 6px;
+    --radius-segment: 10px;
+    --radius-control: 12px;
+    --radius-tile: 16px;
     --radius-card: 20px;
+
+    /* 层级阶梯：chrome 导航 < modal 弹窗 < kiosk 大屏 < toast（任何模式下都可见） */
+    --z-chrome: 50;
+    --z-modal: 60;
+    --z-kiosk: 70;
+    --z-kiosk-legend: 72;
+    --z-toast: 80;
+
     --font-title: 20px;
     --font-body: 16px;
     --font-caption: 13px;
@@ -106,12 +136,18 @@ html.dark {
     --color-separator: rgba(255, 255, 255, 0.1);
     --color-text: #eceff0;
     --color-text-secondary: #98a3a6;
-    --color-bg: #101416;
+    --color-bg: #0c1012;
+    --color-field-focus-bg: rgba(120, 120, 128, 0.3);
 
-    --color-success-badge-bg: rgba(85, 217, 141, 0.14);
+    --color-success: #30d158;
+    --color-success-badge-bg: rgba(48, 209, 88, 0.16);
     --color-success-badge-text: #7ff0ae;
     --color-danger-badge-bg: rgba(255, 105, 97, 0.14);
     --color-danger-badge-text: #ffb3ae;
+
+    --color-warning-tint-bg: rgba(245, 158, 11, 0.22);
+    --color-warning-tint-text: #fcd34d;
+    --color-gold-text: #fcd34d;
 
     --color-resistance: rgba(147, 197, 253, 0.95);
     --color-resistance-bg: rgba(96, 165, 250, 0.16);
@@ -125,25 +161,41 @@ html.dark {
     --action-enlightened-bg: rgba(74, 222, 128, 0.16);
     --action-enlightened-text: rgba(187, 247, 208, 0.98);
 
+    --color-accent-fill: rgba(15, 140, 150, 0.5);
+    --color-accent-fill-hover: rgba(15, 140, 150, 0.6);
+    --shadow-accent: inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 2px 10px rgba(20, 163, 174, 0.3);
+
+    --color-segment-active-bg: rgba(99, 99, 102, 0.65);
+
     --card-border: rgba(255, 255, 255, 0.08);
 
     --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.2);
     --shadow-chrome: 0 12px 36px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
-    --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .title-text { font-size: var(--font-title); font-weight: 700; letter-spacing: -0.02em; }
+.text-body { font-size: var(--font-body); }
+.text-caption { font-size: var(--font-caption); }
+
+/* 键盘焦点环：输入类控件已有 :focus 焦点环，这里覆盖按钮与链接 */
+button:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+}
 
 /* ═══ 背景：单一色相、近乎实色，为悬浮玻璃层提供干净的衬托 ═══ */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
-    background: #f2f6f7;
+    background: var(--color-bg);
     color: var(--color-text);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
 }
-body::before {
+/* 画布渐变：主界面与大屏覆盖层共用同一套，保证进入大屏底色无跳变 */
+body::before,
+.kiosk-overlay::before {
     content: "";
     position: fixed;
     inset: 0;
@@ -153,8 +205,8 @@ body::before {
         radial-gradient(120% 46% at 50% 0%, rgba(20, 163, 174, 0.07), transparent 70%),
         linear-gradient(180deg, #f3f7f8, #edf2f4);
 }
-html.dark body { background: #0c1012; }
-html.dark body::before {
+html.dark body::before,
+html.dark .kiosk-overlay::before {
     background:
         radial-gradient(120% 46% at 50% 0%, rgba(20, 163, 174, 0.05), transparent 70%),
         linear-gradient(180deg, #0d1315, #0b0f11);
@@ -178,8 +230,8 @@ html.dark .card {
     -webkit-appearance: menulist;
     width: 100%;
     height: 44px;
-    padding: 0 12px;
-    border-radius: 12px;
+    padding: 0 16px;
+    border-radius: var(--radius-control);
     border: 1px solid transparent;
     background: var(--color-control-bg);
     color: var(--color-text);
@@ -190,18 +242,15 @@ html.dark .card {
     background: var(--color-control-bg-strong);
 }
 .app-select:focus {
-    background: var(--color-bg);
+    background: var(--color-field-focus-bg);
     box-shadow: 0 0 0 2px var(--color-focus-ring);
-}
-html.dark .app-select:focus {
-    background: rgba(120, 120, 128, 0.3);
 }
 
 /* ═══ 导航层：Liquid Glass（仅顶栏与底部 Tab 栏） ═══ */
 .ifs-topbar {
     position: sticky;
     top: calc(10px + env(safe-area-inset-top));
-    z-index: 50;
+    z-index: var(--z-chrome);
     padding: 0 12px;
     margin-bottom: 6px;
 }
@@ -217,8 +266,8 @@ html.dark .app-select:focus {
     background: var(--chrome-bg);
     border: 1px solid var(--chrome-border);
     box-shadow: inset 0 1.5px 0 var(--chrome-shine), var(--shadow-chrome);
-    backdrop-filter: blur(30px) saturate(170%);
-    -webkit-backdrop-filter: blur(30px) saturate(170%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%);
 }
 html.dark .ifs-topbar-inner {
     background: var(--chrome-bg-dark);
@@ -243,7 +292,7 @@ html.dark .ifs-topbar-inner {
     left: 50%;
     transform: translateX(-50%);
     bottom: calc(14px + env(safe-area-inset-bottom));
-    z-index: 50;
+    z-index: var(--z-chrome);
     display: flex;
     gap: 4px;
     padding: 5px;
@@ -251,8 +300,8 @@ html.dark .ifs-topbar-inner {
     background: var(--chrome-bg);
     border: 1px solid var(--chrome-border);
     box-shadow: inset 0 1.5px 0 var(--chrome-shine), var(--shadow-chrome);
-    backdrop-filter: blur(30px) saturate(170%);
-    -webkit-backdrop-filter: blur(30px) saturate(170%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%);
 }
 html.dark .ifs-tabbar {
     background: var(--chrome-bg-dark);
@@ -334,7 +383,7 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
     font-size: 10px;
     font-family: var(--font-mono);
     padding: 2px 7px;
-    border-radius: 6px;
+    border-radius: var(--radius-tag);
 }
 .faction-tag.is-resistance { background: var(--color-resistance-bg); color: var(--color-resistance-text); }
 .faction-tag.is-enlightened { background: var(--color-enlightened-bg); color: var(--color-enlightened-text); }
@@ -349,6 +398,7 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
     gap: 3px;
     text-align: right;
 }
+.agent-row-ap.is-negative { color: var(--color-danger-badge-text); }
 .ap-delta {
     width: 11px;
     height: 11px;
@@ -357,11 +407,17 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
 }
 .agent-row-time { font-size: 11px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
+/* 状态徽章是「标签」：与阵营标签同族（方角 --radius-tag），和下方的胶囊「动作」
+   保持同高同字号以对齐节奏，但形状不同——方角=状态标签，胶囊=可交互 */
 .status-badge {
-    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    padding: 0 12px;
+    font-size: 11px;
     font-weight: 600;
-    padding: 3px 9px;
-    border-radius: 999px;
+    border-radius: var(--radius-tag);
     white-space: nowrap;
 }
 .status-badge.is-checked {
@@ -375,9 +431,13 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
 
 /* 行内动作按钮：内容层内的标准 tinted 控件 */
 .agent-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
     font-size: 11px;
     font-weight: 600;
-    padding: 5px 12px;
+    padding: 0 12px;
     border-radius: 999px;
     color: var(--color-text);
     background: var(--color-control-bg);
@@ -385,6 +445,8 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
 }
 .agent-action:hover { background: var(--color-control-bg-strong); }
 .agent-action:active { transform: scale(0.96); }
+/* 长按进度环场景下缩放由 .hold-wrap 统一承担，按钮自身不再缩，避免环与轮廓脱开 */
+.hold-wrap .agent-action:active { transform: none; }
 
 .agent-action.action-resistance {
     background: var(--action-resistance-bg);
@@ -397,22 +459,19 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
 }
 .agent-action.action-enlightened:hover { background: rgba(22, 163, 74, 0.22); }
 .agent-action.action-primary {
-    background: rgba(20, 163, 174, 0.8);
+    background: var(--color-accent-fill);
     color: #fff;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 2px 10px rgba(20, 163, 174, 0.4);
+    box-shadow: var(--shadow-accent);
 }
-html.dark .agent-action.action-primary {
-    background: rgba(15, 140, 150, 0.5);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 2px 10px rgba(20, 163, 174, 0.3);
-}
+.agent-action.action-primary:hover { background: var(--color-accent-fill-hover); }
 
-/* ═══ 二维码面板 ═══ */
+/* ═══ 二维码面板 ═══
+   弹窗与大屏共用同一白底面板语言（白色保证扫码对比度） */
 .qr-panel {
-    padding: 24px;
-    border-radius: 16px;
-    background: transparent;
-    box-shadow: none;
-    border: none;
+    padding: 12px;
+    border-radius: var(--radius-tile);
+    background: #fff;
+    box-shadow: 0 4px 18px rgba(16, 42, 48, 0.14);
 }
 html.pwa, body.pwa { overscroll-behavior-y: none; }
 
@@ -432,6 +491,10 @@ button, a, input, select {
 
 /* ═══ 筛选收纳按钮（三横线） ═══ */
 /* 与 AppSegmentedControl 同高同圆角，视觉上像排序控件的最后一个「块」 */
+.segment-active {
+    background: var(--color-segment-active-bg);
+    box-shadow: var(--shadow-segment-active);
+}
 .filter-toggle {
     position: relative;
     flex: none;
@@ -449,10 +512,9 @@ html.dark .filter-toggle { background: var(--color-control-bg-dark); }
 .filter-toggle:hover { background: var(--color-control-bg-strong); }
 html.dark .filter-toggle:hover { background: var(--color-control-bg-strong-dark); }
 .filter-toggle.is-open {
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+    background: var(--color-segment-active-bg);
+    box-shadow: var(--shadow-segment-active);
 }
-html.dark .filter-toggle.is-open { background: rgba(99, 99, 102, 0.65); }
 .filter-dot {
     position: absolute;
     top: 5px;
@@ -483,12 +545,12 @@ html.dark .filter-dot { box-shadow: 0 0 0 2px var(--color-card-bg-dark); }
 html.dark .filter-count-chip { color: var(--color-primary); }
 .filter-count-chip:hover { background: rgba(20, 163, 174, 0.22); }
 .filter-count-chip:active { transform: scale(0.96); }
-.filter-count-chip > span:last-child { font-size: 11px; opacity: 0.7; }
+.filter-count-chip > svg:last-child { width: 12px; height: 12px; opacity: 0.7; }
 
 /* ═══ 历史场次 ═══ */
 .sheet-recents {
     border: 1px solid var(--color-separator);
-    border-radius: 12px;
+    border-radius: var(--radius-control);
     overflow: hidden;
 }
 .sheet-recent-row { display: flex; align-items: stretch; }
@@ -518,7 +580,7 @@ html.dark .filter-count-chip { color: var(--color-primary); }
     font-size: 10px;
     font-weight: 700;
     padding: 2px 7px;
-    border-radius: 6px;
+    border-radius: var(--radius-tag);
     background: var(--color-primary);
     color: #fff;
 }
@@ -546,12 +608,11 @@ html.dark .filter-count-chip { color: var(--color-primary); }
     gap: 10px;
     margin-bottom: 16px;
     padding: 12px 14px;
-    border-radius: 14px;
-    background: var(--color-warning);
-    color: #fff;
+    border-radius: var(--radius-tile);
+    background: var(--color-warning-tint-bg);
+    color: var(--color-warning-tint-text);
     font-size: 14px;
     font-weight: 500;
-    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
 }
 .form-warning-action {
     flex: none;
@@ -589,55 +650,71 @@ html.dark .filter-count-chip { color: var(--color-primary); }
 .kiosk-mark .mark-path.is-solid:not(.is-alert):nth-child(2) { stroke: var(--color-success); }
 /* 未达标签退的胶囊：名字标红 + 黄色边框 */
 .kiosk-chip.is-alert {
-    border: 2px solid #fbbf24;
-    box-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
+    border: 2px solid var(--color-warning);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
 }
 .kiosk-chip.is-alert .kiosk-chip-name { color: var(--color-danger); }
 .kiosk-chip .kiosk-chip-name { overflow: hidden; text-overflow: ellipsis; }
 
 /* 图例条：底部中央横排四种状态 */
+/* 图例条：底部中央横排四种状态；用内容层实色卡材质（而非玻璃），
+   在暗色画布与面板之上都有明确边界和最大对比度 */
 .kiosk-legend {
     position: fixed;
     left: 50%;
     transform: translateX(-50%);
     bottom: calc(44px + env(safe-area-inset-bottom));
-    z-index: 72;
+    z-index: var(--z-kiosk-legend);
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 6px clamp(12px, 2vw, 26px);
-    padding: 6px 16px;
+    padding: 8px 18px;
     border-radius: 999px;
-    background: var(--chrome-bg);
-    border: 1px solid var(--chrome-border);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--color-card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-card);
     font-size: clamp(11px, 1.4vmin, 14px);
-    color: var(--color-text-secondary);
+    font-weight: 600;
+    color: var(--color-text);
 }
+html.dark .kiosk-legend { background: var(--color-card-bg-dark); }
+/* 图例里的空心钩比名单里的更实一点：图例要一眼可读，名单里才需要弱化 */
+.kiosk-legend .kiosk-mark .mark-path:not(.is-solid):not(.is-alert) { opacity: 0.85; }
 .kiosk-legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .kiosk-legend-item .kiosk-mark { width: 1.6em; height: 0.75em; margin-right: 0; }
 .kiosk-legend-item.is-alert-demo .kiosk-chip-name { color: var(--color-danger); font-weight: 700; }
 .kiosk-legend-item.is-alert-demo .mark-path.is-alert { stroke: var(--color-danger); }
 
 /* ═══ 撤销签到长按进度环 ═══ */
-/* SVG 环贴着胶囊按钮外缘，rAF 驱动 stroke-dashoffset 从 100 走到 0 */
+/* SVG 圆角矩形环贴着胶囊按钮外缘：rx 自动钳到高度一半，与胶囊圆角同心、描边粗细均匀；
+   pathLength=1 归一化周长，stroke-dashoffset 按 --hold-progress (0~1) 从整环走到零 */
 .hold-wrap {
     position: relative;
     display: inline-flex;
 }
+/* 按下时缩放整个包裹层：环与按钮同步缩放，环始终贴住按钮轮廓 */
+.hold-wrap:has(.agent-action.is-pressing) { transform: scale(0.96); }
 .hold-ring {
     position: absolute;
     inset: -3px;
     pointer-events: none;
-    border-radius: 999px;
-    /* 进度环：conic-gradient 按 --hold-progress (0~1) 扫过，紧贴按钮实际轮廓 */
-    background: conic-gradient(var(--color-danger) calc(var(--hold-progress, 0) * 360deg), transparent 0);
-    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
-    mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+    overflow: visible;
+}
+.hold-ring svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.hold-ring rect {
+    x: 1.5px;
+    y: 1.5px;
+    width: calc(100% - 3px);
+    height: calc(100% - 3px);
+    rx: 999px;
+    fill: none;
+    stroke: var(--color-danger);
+    stroke-width: 3;
+    stroke-dasharray: 1;
+    stroke-dashoffset: calc(1 - var(--hold-progress, 0));
 }
 .agent-action.is-pressing {
-    transform: scale(0.96);
     background: var(--color-danger-badge-bg);
     color: var(--color-danger-badge-text);
 }
@@ -646,7 +723,7 @@ html.dark .filter-count-chip { color: var(--color-primary); }
 .kiosk-overlay {
     position: fixed;
     inset: 0;
-    z-index: 70;
+    z-index: var(--z-kiosk);
     display: flex;
     flex-direction: column;
     background: var(--color-bg);
@@ -712,8 +789,10 @@ html.dark .filter-count-chip { color: var(--color-primary); }
     color: var(--color-text-secondary);
 }
 .kiosk-progress {
-    width: min(88vw, 640px);
-    height: clamp(8px, 1.4vmin, 14px);
+    /* 与 .kiosk-factions 同宽（92vw），两条总进度与两条阵营进度左右边缘对齐；
+       高度也与阵营条一致（clamp(10px,1.6vmin,16px)），同族进度条等高 */
+    width: min(92vw, 640px);
+    height: clamp(10px, 1.6vmin, 16px);
     border-radius: 999px;
     background: var(--color-control-bg-strong);
     overflow: hidden;
@@ -772,7 +851,7 @@ html.dark .kiosk-faction-bar { background: var(--color-control-bg-strong-dark); 
     width: clamp(110px, 32vmin, 240px);
     padding: clamp(8px, 1.2vmin, 14px);
     background: #fff;
-    border-radius: 16px;
+    border-radius: var(--radius-tile);
     box-shadow: 0 4px 18px rgba(16, 42, 48, 0.14);
 }
 .kiosk-qr-panel canvas {
@@ -794,7 +873,7 @@ html.dark .kiosk-faction-bar { background: var(--color-control-bg-strong-dark); 
     flex-direction: column;
     min-height: 0;
     padding: clamp(12px, 1.8vmin, 22px);
-    border-radius: 18px;
+    border-radius: var(--radius-card);
     background: var(--color-card-bg);
     border: 1px solid var(--card-border);
 }
@@ -828,11 +907,14 @@ html.dark .kiosk-panel { background: var(--color-card-bg-dark); }
     flex: 1;
     min-height: 0;
     overflow: hidden;
+}
+/* 上下渐隐遮罩仅在滚动时生效：提示「还有更多」；静止时首尾行不应被压暗 */
+.kiosk-marquee.is-scrolling {
     -webkit-mask-image: linear-gradient(transparent, #000 5%, #000 95%, transparent);
     mask-image: linear-gradient(transparent, #000 5%, #000 95%, transparent);
 }
 .kiosk-marquee-track { display: flex; flex-direction: column; }
-.kiosk-marquee-track .kiosk-chips { padding-bottom: clamp(12px, 1.8vmin, 20px); }
+.kiosk-marquee-track .kiosk-chips { padding-bottom: clamp(8px, 1.2vmin, 14px); }
 .kiosk-marquee.is-scrolling .kiosk-marquee-track {
     animation: kiosk-scroll var(--marquee-duration, 40s) linear infinite;
 }
@@ -864,8 +946,9 @@ html.dark .kiosk-chip { background: var(--color-control-bg-dark); }
 /* 已签到与未签到同尺寸：统一词云自适应排布，靠双钩区分状态而非字号 */
 
 /* ── 大屏布局按长宽比二分（w/h ≥ 1 归横向，< 1 归竖向），无近方形空洞 ──
-   横向（宽 ≥ 高，如 16:9 / 4:3 投屏 / 正方形）：左统计，右两面板上下堆叠填满高度 */
-@media (min-width: 960px) and (min-aspect-ratio: 1/1) {
+   横向（宽 ≥ 高且 ≥700px：投屏、正方形、半屏窗口）：左统计，右两面板上下堆叠填满高度。
+   门槛取 700 而非 960：700–960 的近方形窗口若落入单列兜底，统计行会把名单面板挤成空条 */
+@media (min-width: 700px) and (min-aspect-ratio: 1/1) {
     .kiosk-body {
         grid-template-columns: clamp(300px, 26vw, 420px) minmax(0, 1fr);
         grid-template-rows:
@@ -915,7 +998,7 @@ html.dark .kiosk-chip { background: var(--color-control-bg-dark); }
     }
     .kiosk-big-num { font-size: clamp(64px, 16vh, 140px); }
     .kiosk-sub { grid-column: 2; }
-    .kiosk-progress { grid-column: 2; }
+    .kiosk-progress { grid-column: 2; width: 100%; }
     .kiosk-factions { grid-column: 2; width: 100%; }
     .kiosk-ap { grid-column: 2; }
     .kiosk-qr-panel { width: clamp(120px, 22vh, 200px); }
@@ -932,7 +1015,7 @@ html.dark .kiosk-chip { background: var(--color-control-bg-dark); }
     min-height: 120px;
 }
 /* 横向大屏（上下堆叠）：只剩一块面板时独占右列整高 */
-@media (min-width: 960px) and (min-aspect-ratio: 1/1) {
+@media (min-width: 700px) and (min-aspect-ratio: 1/1) {
     .kiosk-body:has(> .kiosk-panel-unchecked:only-of-type) {
         grid-template-areas:
             "left unchecked"
@@ -961,16 +1044,49 @@ html.dark .kiosk-chip { background: var(--color-control-bg-dark); }
     .kiosk-panel-empty-all { grid-area: unchecked; }
     .kiosk-body:has(> .kiosk-panel-empty-all:only-of-type) .kiosk-panel-empty-all { grid-area: 2 / 1 / 2 / -1; }
 }
-/* 胶囊流：自然宽度（随名字长短），行装不下才换行，行末留白不强行拉伸；
-   面板未满时行间距由 JS 按可视高度放大（--gap-*），密度均匀铺满无空洞 */
+
+/* ── 尺寸自适应补丁 ──
+   紧凑高度（笔记本半屏、手机横屏 ≥700px 宽）：压缩大数字与二维码、面板行高下限降到 3rem，
+   保证两块名单在矮视口里同时可见 */
+@media (min-width: 700px) and (min-aspect-ratio: 1/1) and (max-height: 560px) {
+    .kiosk-body {
+        grid-template-rows:
+            minmax(calc(var(--rows-unchecked, 1) * 3rem), var(--rows-unchecked, 1) fr)
+            minmax(calc(var(--rows-checked, 1) * 3rem), var(--rows-checked, 1) fr);
+    }
+    .kiosk-left { gap: clamp(6px, 1.2vh, 12px); }
+    .kiosk-stats { gap: clamp(6px, 1.2vh, 12px); }
+    .kiosk-big-num { font-size: clamp(56px, 13vh, 120px); }
+    .kiosk-qr-panel { width: clamp(120px, 16vmin, 200px); }
+}
+/* 窄屏（<700px，手机竖屏）：图例改为随流排在名单下方，不再悬浮盖住胶囊 */
+@media (max-width: 699px) {
+    .kiosk-legend {
+        position: static;
+        transform: none;
+        align-self: center;
+        margin: 0 12px 4px;
+    }
+}
+/* 窄屏且高度紧张：压缩统计列，并给两块名单保底高度，杜绝面板被统计列挤成空条 */
+@media (max-width: 699px) and (max-height: 760px) {
+    .kiosk-left { gap: 8px; }
+    .kiosk-stats { gap: 8px; }
+    .kiosk-big-num { font-size: clamp(44px, 10vmin, 80px); }
+    .kiosk-qr-panel { width: clamp(96px, 24vmin, 150px); }
+    .kiosk-body {
+        grid-template-rows: auto minmax(min(120px, 20vh), 1.1fr) minmax(min(120px, 20vh), 1fr);
+    }
+}
+/* 胶囊流：自然宽度（随名字长短），行装不下才换行；
+   人数少时整体向上对齐、行距恒定、留白沉底，不强行铺满；
+   溢出：JS 仅标记 is-scrolling 启用无缝滚动，测量与布局彻底解耦 */
 .kiosk-chips {
     display: flex;
     flex-wrap: wrap;
-    align-content: space-evenly;
-    gap: var(--chips-gap, clamp(8px, 1.2vmin, 14px));
+    align-content: flex-start;
+    gap: clamp(8px, 1.2vmin, 14px);
 }
-.kiosk-panel-unchecked .kiosk-chips { --chips-gap: var(--gap-unchecked, clamp(8px, 1.2vmin, 14px)); }
-.kiosk-panel-checked .kiosk-chips { --chips-gap: var(--gap-checked, clamp(8px, 1.2vmin, 14px)); }
 .kiosk-chip {
     display: inline-flex;
     align-items: center;
@@ -1031,7 +1147,7 @@ html.dark .kiosk-chip { background: var(--color-control-bg-dark); }
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    border-radius: 14px;
+    border-radius: var(--radius-tile);
     background: var(--color-control-bg);
     animation: lottery-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
@@ -1059,11 +1175,11 @@ html.dark .lottery-winner-idx { color: var(--color-primary); }
     to { opacity: 1; transform: scale(1); }
 }
 
-/* 开奖高亮弹窗 */
-.lottery-modal {
+/* ═══ 弹窗遮罩：二维码与开奖弹窗共用同一遮罩语言 ═══ */
+.modal-overlay {
     position: fixed;
     inset: 0;
-    z-index: 60;
+    z-index: var(--z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1098,17 +1214,16 @@ html.dark .lottery-winner-idx { color: var(--color-primary); }
 }
 .lottery-modal-winners .lottery-winner { padding: 14px 18px; }
 .lottery-modal-winners .lottery-winner-name { font-size: clamp(22px, 6vw, 28px); }
-/* 第 1 名（一等奖）视觉强调：更大字号 + 金色序号 */
-.lottery-modal-winners .lottery-winner:first-child { padding: 16px 18px; }
-.lottery-modal-winners .lottery-winner:first-child .lottery-winner-name { font-size: clamp(28px, 8vw, 38px); }
-.lottery-modal-winners .lottery-winner:first-child .lottery-winner-idx {
+/* 仅单人抽奖时放大强调中奖者；批量抽取是随机结果、无名次含义，人人平等 */
+.lottery-modal-winners.is-single .lottery-winner:first-child { padding: 16px 18px; }
+.lottery-modal-winners.is-single .lottery-winner:first-child .lottery-winner-name { font-size: clamp(28px, 8vw, 38px); }
+.lottery-modal-winners.is-single .lottery-winner:first-child .lottery-winner-idx {
     width: 34px;
     height: 34px;
     font-size: 15px;
-    background: rgba(245, 158, 11, 0.18);
-    color: #b45309;
+    background: var(--color-gold-bg);
+    color: var(--color-gold-text);
 }
-html.dark .lottery-modal-winners .lottery-winner:first-child .lottery-winner-idx { color: #fbbf24; }
 .lottery-modal-foot {
     display: flex;
     align-items: center;
@@ -1124,13 +1239,13 @@ html.dark .lottery-modal-winners .lottery-winner:first-child .lottery-winner-idx
     left: 50%;
     transform: translateX(-50%);
     bottom: calc(104px + env(safe-area-inset-bottom));
-    z-index: 45;
+    z-index: var(--z-toast);
     display: flex;
     align-items: center;
     gap: 10px;
     max-width: min(92vw, 480px);
     padding: 12px 14px;
-    border-radius: 14px;
+    border-radius: var(--radius-tile);
     color: #fff;
     background: var(--color-danger);
     box-shadow: 0 8px 28px rgba(255, 69, 58, 0.4);
