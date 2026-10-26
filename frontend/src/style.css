@@ -286,33 +286,48 @@ html.dark .ifs-tab.is-active {
 .tabbar-space { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
 
 /* ═══ Agent 紧凑行列表 ═══ */
-/* 多栏自适应：窄屏单栏，宽屏自动 2~3 栏（栏间发丝分隔线） */
+/* 显式分列：窄屏 1 列，≥768px 2 列，≥1120px 3 列（由 App.vue 按名单长度均分到列容器），
+   列间发丝分隔线；列容器内首行无分隔条，任何一列顶部都干净。 */
 .agent-list {
-    columns: 23rem 3;
-    column-gap: 40px;
-    column-rule: 1px solid var(--color-separator);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
 }
-/* 行结构固定为两行：上行「名字 + 签到状态」，下行「阵营标签 + ΔAP/时间/按钮靠右」。
-   高度确定性一致，杜绝 flex-wrap 换行导致的错位与参差。 */
+@media (min-width: 768px) {
+    .agent-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; }
+    .agent-list .agent-col + .agent-col { border-left: 1px solid var(--color-separator); padding-left: 40px; }
+}
+@media (min-width: 1120px) {
+    .agent-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.agent-col { min-width: 0; }
+/* 行结构：单行三区块——1「ID+阵营」靠左（空间不足时优先省略 ID），
+   2「ΔAP+时间」与 3「状态+按钮」靠右；各区块内部上下两行，行高全行恒定。 */
 .agent-row {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px 14px;
-    break-inside: avoid;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    min-width: 0;
     transition: background-color 0.15s ease;
 }
+.agent-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.agent-cell-id { flex: 1 1 auto; }          /* 1：占余下空间，ID 溢出时省略号 */
+.agent-cell-data { flex: 0 0 auto; align-items: flex-end; text-align: right; }
+.agent-cell-action { flex: 0 0 auto; align-items: flex-end; }
 .agent-row:hover { background: rgba(120, 120, 128, 0.07); }
 html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
 .agent-row + .agent-row { border-top: 1px solid var(--color-separator); }
 
-.agent-row-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
-.agent-row-name { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-row-name { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .agent-row-name.is-resistance { color: var(--color-resistance-text); }
 .agent-row-name.is-enlightened { color: var(--color-enlightened-text); }
 
-.agent-row-bottom { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.agent-row-side { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; min-width: 0; }
 
 .faction-tag {
     width: fit-content;
@@ -324,12 +339,10 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
 .faction-tag.is-resistance { background: var(--color-resistance-bg); color: var(--color-resistance-text); }
 .faction-tag.is-enlightened { background: var(--color-enlightened-bg); color: var(--color-enlightened-text); }
 
-.agent-row-side { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 .agent-row-ap {
     font-size: 12px;
     color: var(--color-text-secondary);
     font-variant-numeric: tabular-nums;
-    min-width: 76px;
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
@@ -342,7 +355,7 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
     flex: none;
     margin-top: 1px;
 }
-.agent-row-time { font-size: 11px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.agent-row-time { font-size: 11px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .status-badge {
     font-size: 10px;
@@ -362,9 +375,9 @@ html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
 
 /* 行内动作按钮：内容层内的标准 tinted 控件 */
 .agent-action {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    padding: 8px 16px;
+    padding: 5px 12px;
     border-radius: 999px;
     color: var(--color-text);
     background: var(--color-control-bg);
@@ -416,3 +429,734 @@ button, a, input, select {
     -webkit-user-select: none;
     user-select: none;
 }
+
+/* ═══ 筛选收纳按钮（三横线） ═══ */
+/* 与 AppSegmentedControl 同高同圆角，视觉上像排序控件的最后一个「块」 */
+.filter-toggle {
+    position: relative;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text);
+    background: var(--color-control-bg);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+html.dark .filter-toggle { background: var(--color-control-bg-dark); }
+.filter-toggle:hover { background: var(--color-control-bg-strong); }
+html.dark .filter-toggle:hover { background: var(--color-control-bg-strong-dark); }
+.filter-toggle.is-open {
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+}
+html.dark .filter-toggle.is-open { background: rgba(99, 99, 102, 0.65); }
+.filter-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-card-bg);
+}
+html.dark .filter-dot { box-shadow: 0 0 0 2px var(--color-card-bg-dark); }
+
+/* 筛选结果计数芯片：与筛选按钮同排常驻，点击一键清除筛选 */
+.filter-count-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--color-primary-strong);
+    background: var(--color-primary-soft);
+    transition: background-color 0.2s ease, transform 0.15s ease;
+}
+html.dark .filter-count-chip { color: var(--color-primary); }
+.filter-count-chip:hover { background: rgba(20, 163, 174, 0.22); }
+.filter-count-chip:active { transform: scale(0.96); }
+.filter-count-chip > span:last-child { font-size: 11px; opacity: 0.7; }
+
+/* ═══ 历史场次 ═══ */
+.sheet-recents {
+    border: 1px solid var(--color-separator);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.sheet-recent-row { display: flex; align-items: stretch; }
+.sheet-recent-row + .sheet-recent-row { border-top: 1px solid var(--color-separator); }
+.sheet-recent-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    text-align: left;
+    transition: background-color 0.15s ease;
+}
+.sheet-recent-main:hover { background: var(--color-control-bg); }
+.sheet-recent-row.is-current .sheet-recent-main:hover { background: transparent; }
+.sheet-recent-row.is-current { background: var(--color-primary-soft); }
+.sheet-recent-id {
+    font-size: 14px;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sheet-recent-badge {
+    flex: none;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: var(--color-primary);
+    color: #fff;
+}
+.sheet-recent-date {
+    flex: none;
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+.sheet-recent-remove {
+    flex: none;
+    width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-secondary);
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+.sheet-recent-remove:hover { color: var(--color-danger); background: var(--color-danger-badge-bg); }
+
+/* ═══ 签到页表单告警条 ═══ */
+.form-warning {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--color-warning);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+}
+.form-warning-action {
+    flex: none;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 4px 6px;
+    border-radius: 8px;
+}
+
+/* ═══ 大屏双钩状态（参考 Telegram 已读回执） ═══ */
+/* 双钩位于 ID 之后：高度约为胶囊字号的一半，跟随字号的字面比例 */
+.kiosk-mark {
+    flex: none;
+    width: 1.05em;
+    height: 0.5em;
+    margin-left: 0.4em;
+    align-self: center;
+}
+.kiosk-mark .mark-path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.45; /* 空心钩：弱化描边 */
+}
+.kiosk-mark .mark-path.is-solid {
+    opacity: 1; /* 实心钩：全强度 */
+}
+/* 未达标签退警示：第二枚钩标红 */
+.kiosk-mark .mark-path.is-alert { stroke: var(--color-danger); opacity: 1; }
+/* 达标签退（完成）：第二枚钩为完成绿，与警示红一眼区分（仅非警示的第二枚） */
+.kiosk-mark .mark-path.is-solid:not(.is-alert):nth-child(2) { stroke: var(--color-success); }
+/* 未达标签退的胶囊：名字标红 + 黄色边框 */
+.kiosk-chip.is-alert {
+    border: 2px solid #fbbf24;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
+}
+.kiosk-chip.is-alert .kiosk-chip-name { color: var(--color-danger); }
+.kiosk-chip .kiosk-chip-name { overflow: hidden; text-overflow: ellipsis; }
+
+/* 图例条：底部中央横排四种状态 */
+.kiosk-legend {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(44px + env(safe-area-inset-bottom));
+    z-index: 72;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px clamp(12px, 2vw, 26px);
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: var(--chrome-bg);
+    border: 1px solid var(--chrome-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    font-size: clamp(11px, 1.4vmin, 14px);
+    color: var(--color-text-secondary);
+}
+.kiosk-legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.kiosk-legend-item .kiosk-mark { width: 1.6em; height: 0.75em; margin-right: 0; }
+.kiosk-legend-item.is-alert-demo .kiosk-chip-name { color: var(--color-danger); font-weight: 700; }
+.kiosk-legend-item.is-alert-demo .mark-path.is-alert { stroke: var(--color-danger); }
+
+/* ═══ 撤销签到长按进度环 ═══ */
+/* SVG 环贴着胶囊按钮外缘，rAF 驱动 stroke-dashoffset 从 100 走到 0 */
+.hold-wrap {
+    position: relative;
+    display: inline-flex;
+}
+.hold-ring {
+    position: absolute;
+    inset: -3px;
+    pointer-events: none;
+    border-radius: 999px;
+    /* 进度环：conic-gradient 按 --hold-progress (0~1) 扫过，紧贴按钮实际轮廓 */
+    background: conic-gradient(var(--color-danger) calc(var(--hold-progress, 0) * 360deg), transparent 0);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+}
+.agent-action.is-pressing {
+    transform: scale(0.96);
+    background: var(--color-danger-badge-bg);
+    color: var(--color-danger-badge-text);
+}
+
+/* ═══ 大屏展示模式 ═══ */
+.kiosk-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg);
+}
+.kiosk-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(20px + env(safe-area-inset-top)) 28px 0;
+}
+.kiosk-title {
+    font-size: clamp(18px, 2.5vw, 28px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+}
+/* 主体网格：窄屏单列堆叠（统计+二维码 → 未签到 → 已签到），宽屏三栏并排 */
+.kiosk-body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    gap: clamp(10px, 1.6vmin, 18px);
+    padding: 0 clamp(12px, 2.4vmin, 28px) clamp(8px, 1.2vmin, 14px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-areas:
+        "left"
+        "unchecked"
+        "checked";
+}
+.kiosk-left {
+    grid-area: left;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(10px, 2vh, 22px);
+    min-height: 0;
+}
+.kiosk-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(8px, 1.6vmin, 16px);
+    text-align: center;
+}
+.kiosk-big-num {
+    font-size: clamp(52px, 13vmin, 150px);
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--color-primary);
+    font-variant-numeric: tabular-nums;
+    animation: kiosk-tick 0.5s ease;
+}
+@keyframes kiosk-tick {
+    from { transform: scale(1.04); opacity: 0.6; }
+    to { transform: scale(1); opacity: 1; }
+}
+.kiosk-sub {
+    font-size: clamp(13px, 2.2vmin, 26px);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+.kiosk-progress {
+    width: min(88vw, 640px);
+    height: clamp(8px, 1.4vmin, 14px);
+    border-radius: 999px;
+    background: var(--color-control-bg-strong);
+    overflow: hidden;
+}
+html.dark .kiosk-progress { background: var(--color-control-bg-strong-dark); }
+.kiosk-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--color-primary);
+    box-shadow: 0 0 24px rgba(20, 163, 174, 0.5);
+    transition: width 0.6s ease;
+}
+.kiosk-factions {
+    display: flex;
+    gap: clamp(12px, 4vw, 48px);
+    width: min(92vw, 640px);
+}
+.kiosk-faction { flex: 1; min-width: 0; }
+.kiosk-faction-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: clamp(12px, 1.9vmin, 20px);
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--color-text-secondary);
+}
+.kiosk-faction-bar {
+    height: clamp(10px, 1.6vmin, 16px);
+    border-radius: 999px;
+    background: var(--color-control-bg-strong);
+    overflow: hidden;
+}
+html.dark .kiosk-faction-bar { background: var(--color-control-bg-strong-dark); }
+.kiosk-faction-bar .is-resistance,
+.kiosk-faction-bar .is-enlightened {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.6s ease;
+}
+.kiosk-faction-bar .is-resistance { background: var(--color-resistance); }
+.kiosk-faction-bar .is-enlightened { background: var(--color-enlightened); }
+.kiosk-ap {
+    font-size: clamp(13px, 2.1vmin, 22px);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+/* 签到二维码：白色面板保证扫码对比度，画布尺寸随视口伸缩 */
+.kiosk-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.kiosk-qr-panel {
+    width: clamp(110px, 32vmin, 240px);
+    padding: clamp(8px, 1.2vmin, 14px);
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(16, 42, 48, 0.14);
+}
+.kiosk-qr-panel canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+.kiosk-qr-caption {
+    font-size: clamp(12px, 1.6vmin, 17px);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-align: center;
+}
+.kiosk-qr-caption.is-missing { opacity: 0.7; font-weight: 400; }
+
+/* 名单面板 */
+.kiosk-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: clamp(12px, 1.8vmin, 22px);
+    border-radius: 18px;
+    background: var(--color-card-bg);
+    border: 1px solid var(--card-border);
+}
+html.dark .kiosk-panel { background: var(--color-card-bg-dark); }
+.kiosk-panel-unchecked { grid-area: unchecked; }
+.kiosk-panel-checked { grid-area: checked; }
+.kiosk-panel-head {
+    flex: none;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: clamp(14px, 2vmin, 22px);
+    font-weight: 700;
+    color: var(--color-text);
+    padding-bottom: clamp(8px, 1.2vmin, 14px);
+}
+.kiosk-panel-count {
+    font-size: 0.9em;
+    color: var(--color-text-secondary);
+}
+.kiosk-panel-empty {
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    font-size: clamp(14px, 1.9vmin, 20px);
+}
+
+/* 跑马灯：内容溢出面板时才滚动（is-scrolling 由 JS 测量后添加）；
+   双拷贝 + translateY(-50%) 无缝循环，子项用 padding-bottom 保证半个轨道恰好一份内容 */
+.kiosk-marquee {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(transparent, #000 5%, #000 95%, transparent);
+    mask-image: linear-gradient(transparent, #000 5%, #000 95%, transparent);
+}
+.kiosk-marquee-track { display: flex; flex-direction: column; }
+.kiosk-marquee-track .kiosk-chips { padding-bottom: clamp(12px, 1.8vmin, 20px); }
+.kiosk-marquee.is-scrolling .kiosk-marquee-track {
+    animation: kiosk-scroll var(--marquee-duration, 40s) linear infinite;
+}
+@keyframes kiosk-scroll {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .kiosk-marquee.is-scrolling .kiosk-marquee-track { animation: none; }
+}
+
+/* 名单胶囊：未签到为中性色，已签到放大并着阵营色；
+   词云式布局（flex-grow + space-between）让每行铺满面板宽度 */
+.kiosk-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.32em 0.85em;
+    border-radius: 999px;
+    font-size: clamp(13px, 1.7vmin, 19px);
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--color-control-bg);
+    color: var(--color-text);
+    min-width: 0;
+}
+html.dark .kiosk-chip { background: var(--color-control-bg-dark); }
+.kiosk-chip.is-resistance { background: var(--color-resistance-bg); color: var(--color-resistance-text); }
+.kiosk-chip.is-enlightened { background: var(--color-enlightened-bg); color: var(--color-enlightened-text); }
+/* 已签到与未签到同尺寸：统一词云自适应排布，靠双钩区分状态而非字号 */
+
+/* ── 大屏布局按长宽比二分（w/h ≥ 1 归横向，< 1 归竖向），无近方形空洞 ──
+   横向（宽 ≥ 高，如 16:9 / 4:3 投屏 / 正方形）：左统计，右两面板上下堆叠填满高度 */
+@media (min-width: 960px) and (min-aspect-ratio: 1/1) {
+    .kiosk-body {
+        grid-template-columns: clamp(300px, 26vw, 420px) minmax(0, 1fr);
+        grid-template-rows:
+            minmax(calc(var(--rows-unchecked, 1) * 4.2rem), var(--rows-unchecked, 1) fr)
+            minmax(calc(var(--rows-checked, 1) * 4.2rem), var(--rows-checked, 1) fr);
+        grid-template-areas:
+            "left unchecked"
+            "left checked";
+    }
+    .kiosk-left { justify-content: flex-start; }
+    .kiosk-stats { gap: clamp(10px, 1.8vh, 18px); }
+    .kiosk-big-num { font-size: clamp(80px, 19vh, 220px); }
+    .kiosk-sub { font-size: clamp(15px, 2.4vmin, 28px); }
+    .kiosk-progress,
+    .kiosk-factions { width: 100%; }
+    .kiosk-factions { flex-direction: column; gap: clamp(10px, 2vh, 18px); }
+    .kiosk-qr-panel { width: clamp(160px, 20vmin, 260px); }
+}
+/* 竖向（高 > 宽，如平板 3:4 竖持 / 1071×1434）：顶部统计带，两面板左右并排填满宽度。
+   条件 max-aspect-ratio: 9999/10000 排除正方形（w=h 归横向），避免两块在 1:1 同时命中 */
+@media (min-width: 700px) and (max-aspect-ratio: 9999/10000) {
+    .kiosk-body {
+        grid-template-columns:
+            minmax(0, var(--rows-unchecked, 1) fr)
+            minmax(0, var(--rows-checked, 1) fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-areas:
+            "left left"
+            "unchecked checked";
+    }
+    .kiosk-left {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) auto;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(16px, 4vw, 48px);
+        padding: clamp(6px, 1.2vh, 14px) 0;
+    }
+    .kiosk-stats {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        justify-content: center;
+        column-gap: clamp(14px, 2.5vw, 32px);
+        row-gap: 10px;
+        text-align: left;
+    }
+    .kiosk-big-num { font-size: clamp(64px, 16vh, 140px); }
+    .kiosk-sub { grid-column: 2; }
+    .kiosk-progress { grid-column: 2; }
+    .kiosk-factions { grid-column: 2; width: 100%; }
+    .kiosk-ap { grid-column: 2; }
+    .kiosk-qr-panel { width: clamp(120px, 22vh, 200px); }
+}
+
+/* ── 面板缺员自适应：某一边无人时该面板整体隐藏（v-if），幸存面板接管其轨道 ──
+   默认（单列/三栏）布局：grid-template-areas 固定，隐藏的面板轨道由空态块兜底，
+   不会留白。 */
+.kiosk-panel-empty-all {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    grid-column: 1 / -1;
+    min-height: 120px;
+}
+/* 横向大屏（上下堆叠）：只剩一块面板时独占右列整高 */
+@media (min-width: 960px) and (min-aspect-ratio: 1/1) {
+    .kiosk-body:has(> .kiosk-panel-unchecked:only-of-type) {
+        grid-template-areas:
+            "left unchecked"
+            "left unchecked";
+    }
+    .kiosk-body:has(> .kiosk-panel-checked:only-of-type) {
+        grid-template-areas:
+            "left checked"
+            "left checked";
+    }
+    .kiosk-panel-empty-all { grid-area: unchecked; }
+    .kiosk-body:has(> .kiosk-panel-empty-all:only-of-type) .kiosk-panel-empty-all { grid-area: 1 / 2 / -1 / 2; }
+}
+/* 竖向大屏（左右并排）：只剩一块面板时独占下方整行 */
+@media (min-width: 700px) and (max-aspect-ratio: 9999/10000) {
+    .kiosk-body:has(> .kiosk-panel-unchecked:only-of-type) {
+        grid-template-areas:
+            "left left"
+            "unchecked unchecked";
+    }
+    .kiosk-body:has(> .kiosk-panel-checked:only-of-type) {
+        grid-template-areas:
+            "left left"
+            "checked checked";
+    }
+    .kiosk-panel-empty-all { grid-area: unchecked; }
+    .kiosk-body:has(> .kiosk-panel-empty-all:only-of-type) .kiosk-panel-empty-all { grid-area: 2 / 1 / 2 / -1; }
+}
+/* 胶囊流：自然宽度（随名字长短），行装不下才换行，行末留白不强行拉伸；
+   面板未满时行间距由 JS 按可视高度放大（--gap-*），密度均匀铺满无空洞 */
+.kiosk-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: space-evenly;
+    gap: var(--chips-gap, clamp(8px, 1.2vmin, 14px));
+}
+.kiosk-panel-unchecked .kiosk-chips { --chips-gap: var(--gap-unchecked, clamp(8px, 1.2vmin, 14px)); }
+.kiosk-panel-checked .kiosk-chips { --chips-gap: var(--gap-checked, clamp(8px, 1.2vmin, 14px)); }
+.kiosk-chip {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    flex: 0 1 auto;
+    max-width: 100%;
+}
+.kiosk-chip .kiosk-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.kiosk-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px calc(20px + env(safe-area-inset-bottom));
+    font-size: 14px;
+    color: var(--color-text-secondary);
+}
+
+/* ═══ 抽奖 ═══ */
+/* 双列布局：窄屏中奖榜在上（order -1）、控制区在下；≥768px 中奖榜侧边常驻 */
+.lottery-layout {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+.lottery-layout .lottery-board { order: -1; }
+@media (min-width: 768px) {
+    .lottery-layout {
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    }
+    .lottery-layout .lottery-board { order: 0; }
+}
+.lottery-board-list { display: flex; flex-direction: column; gap: 8px; }
+.lottery-board-empty {
+    padding: 20px 0 8px;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+}
+.lottery-rolling {
+    font-size: clamp(36px, 9vw, 72px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    min-height: 1.2em;
+    text-align: center;
+    color: var(--color-primary);
+    margin: 12px 0 4px;
+}
+.lottery-rolling.is-resistance { color: var(--color-resistance-text); }
+.lottery-rolling.is-enlightened { color: var(--color-enlightened-text); }
+.lottery-winner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: var(--color-control-bg);
+    animation: lottery-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+html.dark .lottery-winner { background: var(--color-control-bg-dark); }
+.lottery-winner-idx {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    background: var(--color-primary-soft);
+    color: var(--color-primary-strong);
+    font-variant-numeric: tabular-nums;
+}
+html.dark .lottery-winner-idx { color: var(--color-primary); }
+.lottery-winner-name { font-size: 20px; font-weight: 700; }
+.lottery-winner.is-resistance .lottery-winner-name { color: var(--color-resistance-text); }
+.lottery-winner.is-enlightened .lottery-winner-name { color: var(--color-enlightened-text); }
+@keyframes lottery-pop {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* 开奖高亮弹窗 */
+.lottery-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.lottery-modal-card {
+    width: min(92vw, 560px);
+    max-height: 84dvh;
+    overflow-y: auto;
+    padding: clamp(20px, 4vw, 30px);
+}
+.lottery-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.lottery-modal-caption {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--color-text-secondary);
+}
+.lottery-modal-winners {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 16px 0 6px;
+}
+.lottery-modal-winners .lottery-winner { padding: 14px 18px; }
+.lottery-modal-winners .lottery-winner-name { font-size: clamp(22px, 6vw, 28px); }
+/* 第 1 名（一等奖）视觉强调：更大字号 + 金色序号 */
+.lottery-modal-winners .lottery-winner:first-child { padding: 16px 18px; }
+.lottery-modal-winners .lottery-winner:first-child .lottery-winner-name { font-size: clamp(28px, 8vw, 38px); }
+.lottery-modal-winners .lottery-winner:first-child .lottery-winner-idx {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+    background: rgba(245, 158, 11, 0.18);
+    color: #b45309;
+}
+html.dark .lottery-modal-winners .lottery-winner:first-child .lottery-winner-idx { color: #fbbf24; }
+.lottery-modal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 16px;
+    min-height: 44px;
+}
+
+/* ═══ 错误 Toast ═══ */
+.error-toast {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(104px + env(safe-area-inset-bottom));
+    z-index: 45;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: min(92vw, 480px);
+    padding: 12px 14px;
+    border-radius: 14px;
+    color: #fff;
+    background: var(--color-danger);
+    box-shadow: 0 8px 28px rgba(255, 69, 58, 0.4);
+}
+.error-toast-message {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    word-break: break-all;
+}
+.error-toast-close {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.18);
+    transition: background-color 0.2s ease;
+}
+.error-toast-close:hover { background: rgba(255, 255, 255, 0.3); }
+.lottery-history-row {
+    padding: 10px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.lottery-history-row + .lottery-history-row { border-top: 1px solid var(--color-separator); }
