@@ -325,11 +325,24 @@ async function handleRequest(event) {
   }
 
   // 路由: 验证/切换状态
+  // 可选 value 参数（TRUE/FALSE，大小写不敏感）：目标状态语义，幂等写入；
+  // 缺省时保持旧的 toggle 行为（向前兼容已部署的旧前端）。
   if (url.pathname === '/verify' && method === 'POST') {
     try {
       const agent_name = url.searchParams.get('agent_name');
       if (!agent_name) {
         return jsonResponse({ error: 'Missing agent_name' }, 400);
+      }
+
+      let targetValue = null;
+      const rawValue = url.searchParams.get('value');
+      if (rawValue !== null) {
+        const normalized = rawValue.trim().toUpperCase();
+        if (normalized === 'TRUE' || normalized === '1') targetValue = 'TRUE';
+        else if (normalized === 'FALSE' || normalized === '0') targetValue = 'FALSE';
+        else {
+          return jsonResponse({ error: 'Invalid value, expected TRUE or FALSE' }, 400);
+        }
       }
 
       // 优化：一次 API 调用获取行号和当前 PV 状态
@@ -340,10 +353,14 @@ async function handleRequest(event) {
       }
 
       const { rowIndex, currentPV } = agentInfo;
-      
-      // 健壮的布尔值切换逻辑
       const isTrue = String(currentPV).toUpperCase() === "TRUE";
-      const newValue = !isTrue;
+
+      // 目标状态语义：已是目标值则不写入（幂等）；未传 value 时切换
+      const newValue = targetValue !== null ? targetValue : (isTrue ? 'FALSE' : 'TRUE');
+
+      if (String(newValue).toUpperCase() === String(currentPV).toUpperCase()) {
+        return jsonResponse({ status: 'success', message: 'No change needed', new_value: newValue, unchanged: true });
+      }
 
       const updateResult = await updateSheetCell(spreadsheetId, sheetName, rowIndex, "A", newValue);
 

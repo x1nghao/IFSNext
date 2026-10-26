@@ -233,3 +233,117 @@ test('form-check 表单页缺少 FB_PUBLIC_LOAD_DATA_ 时返回未知状态', as
   assert.equal(body.exists, null);
   assert.equal(body.acceptingResponses, null);
 });
+
+// ── /verify 目标状态语义 ──
+
+// /verify 流程桩：oauth 换 token → 读 A:E → （需要时）PUT 写单元格；记录调用供断言
+function verifyFetchStub(sheetRows) {
+  const calls = [];
+  const impl = async (url, init = {}) => {
+    const u = String(url);
+    calls.push({ url: u, method: init.method || 'GET', body: init.body || null });
+    if (u.includes('oauth2.googleapis.com/token')) {
+      return new Response(JSON.stringify({ access_token: 'test-token', expires_in: 3600 }), { status: 200 });
+    }
+    if (u.includes('/values/Data!A:E')) {
+      return new Response(JSON.stringify({ values: sheetRows }), { status: 200 });
+    }
+    if (init.method === 'PUT') {
+      return new Response(JSON.stringify({ updatedCells: 1 }), { status: 200 });
+    }
+    return new Response('unexpected', { status: 500 });
+  };
+  return { impl, calls };
+}
+
+// 名单：A 列 PV，E 列名字；Alpha 未签到，Beta 已签到
+const VERIFY_SHEET_ROWS = [
+  ['TRUE/FALSE', '', 'Faction', '', 'Name'],
+  ['FALSE', '', 'Resistance', '', 'Alpha'],
+  ['TRUE', '', 'Enlightened', '', 'Beta'],
+];
+
+async function loadVerifyWorker(sheetRows = VERIFY_SHEET_ROWS) {
+  const pem = await generateTestPem();
+  const stub = verifyFetchStub(sheetRows);
+  const worker = loadWorker({
+    allowedSpreadsheetIds: 'sheet-1',
+    fetchImpl: stub.impl,
+    credentials: { privateKey: pem, clientEmail: 'sa@test.iam.gserviceaccount.com' },
+  });
+  return { worker, calls: stub.calls };
+}
+
+test('verify 带 value=TRUE 且当前 FALSE 时写入 TRUE', async () => {
+  const { worker, calls } = await loadVerifyWorker();
+  const response = await worker.handle(
+    new Request('https://worker.test/verify?spreadsheet_id=sheet-1&agent_name=Alpha&value=TRUE', { method: 'POST' })
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.status, 'success');
+  assert.equal(body.new_value, 'TRUE');
+  const put = calls.find(c => c.method === 'PUT');
+  assert.ok(put, '应发起 PUT 写入');
+  assert.match(put.url, /Data!A2\?valueInputOption=RAW$/);
+  assert.equal(put.body, JSON.stringify({ range: 'Data!A2', values: [['TRUE']] }));
+});
+
+test('verify 带 value=TRUE 且当前已是 TRUE 时不写入（幂等）', async () => {
+  const { worker, calls } = await loadVerifyWorker();
+  const response = await worker.handle(
+    new Request('https://worker.test/verify?spreadsheet_id=sheet-1&agent_name=Beta&value=TRUE', { method: 'POST' })
+  );
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.new_value, 'TRUE');
+  assert.equal(body.unchanged, true);
+  assert.equal(calls.find(c => c.method === 'PUT'), undefined);
+});
+
+test('verify 带 value=FALSE 且当前 TRUE 时写入 FALSE', async () => {
+  const { worker, calls } = await loadVerifyWorker();
+  const response = await worker.handle(
+    new Request('https://worker.test/verify?spreadsheet_id=sheet-1&agent_name=Beta&value=false', { method: 'POST' })
+  );
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).new_value, 'FALSE');
+  const put = calls.find(c => c.method === 'PUT');
+  assert.ok(put);
+  assert.equal(put.body, JSON.stringify({ range: 'Data!A3', values: [['FALSE']] }));
+});
+
+test('verify 非法 value 返回 400 且不触达 Google API', async () => {
+  const { worker, calls } = await loadVerifyWorker();
+  const response = await worker.handle(
+    new Request('https://worker.test/verify?spreadsheet_id=sheet-1&agent_name=Alpha&value=MAYBE', { method: 'POST' })
+  );
+  assert.equal(response.status, 400);
+  assert.equal(calls.length, 0);
+});
+
+test('verify 缺省 value 保持 toggle 行为', async () => {
+  const { worker } = await loadVerifyWorker();
+  const response = await worker.handle(
+    new Request('https://worker.test/verify?spreadsheet_id=sheet-1&agent_name=Beta', { method: 'POST' })
+  );
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).new_value, 'FALSE');
+});
+
+test('verify 名单中不存在的 Agent 返回 404', async () => {
+  const { worker } = await loadVerifyWorker();
+  const response = await worker.handle(
+    new Request('https://worker.test/verify?spreadsheet_id=sheet-1&agent_name=Ghost&value=TRUE', { method: 'POST' })
+  );
+  assert.equal(response.status, 404);
+  assert.deepEqual(await response.json(), { error: 'Agent not found' });
+});
+
+test('verify 缺少 agent_name 返回 400', async () => {
+  const { worker } = await loadVerifyWorker();
+  const response = await worker.handle(
+    new Request('https://worker.test/verify?spreadsheet_id=sheet-1&value=TRUE', { method: 'POST' })
+  );
+  assert.equal(response.status, 400);
+});
