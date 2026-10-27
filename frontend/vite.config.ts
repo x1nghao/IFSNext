@@ -15,9 +15,10 @@ export default defineConfig({
       manifest: {
         name: 'IFSNext',
         short_name: 'IFSNext',
-        description: 'IFS Activity Helper Platform',
-        theme_color: '#32acb6',
-        background_color: '#F2F2F7',
+        description: 'Ingress First Saturday 签到管理工具：名单查询、签到核验、现场抽奖与大屏展示',
+        // 与 index.html 的 theme-color、style.css 的 --color-bg/--color-primary 保持一致
+        theme_color: '#14a3ae',
+        background_color: '#f2f6f7',
         display: 'standalone',
         start_url: '/',
         icons: [

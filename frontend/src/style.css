@@ -7,7 +7,6 @@
 /* 基于 .dark class 的暗色变体：配合应用内手动外观切换（自动/浅色/深色） */
 @custom-variant dark (&:where(.dark, .dark *));
 
-[v-cloak] { visibility: hidden; }
 .fade-enter-active, .fade-leave-active {
     transition: opacity 0.3s ease;
 }
@@ -924,6 +923,9 @@ html.dark .kiosk-panel { background: var(--color-card-bg-dark); }
 }
 @media (prefers-reduced-motion: reduce) {
     .kiosk-marquee.is-scrolling .kiosk-marquee-track { animation: none; }
+    /* 数字滚动与中奖揭晓动画同样尊重减弱动态偏好：内容直接呈现，不再缩放淡入 */
+    .kiosk-big-num { animation: none; }
+    .lottery-winner { animation: none; }
 }
 
 /* 名单胶囊：未签到为中性色，已签到放大并着阵营色；

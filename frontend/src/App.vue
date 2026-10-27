@@ -29,9 +29,14 @@ import {
   removeAgentModifiedTime,
 } from '@/utils/agentModifiedAt';
 import { isSafeHttpUrl } from '@/utils/url';
+import { createLogger } from '@/utils/logger';
 import { parseIgnoredFormUrls, addIgnoredFormUrl } from '@/utils/formCheck';
 
 const { t, locale } = useI18n();
+
+// 模块级日志：网络故障与竞态现场统一带 [IFSNext:data]/[IFSNext:verify] 前缀
+const dataLogger = createLogger('data');
+const verifyLogger = createLogger('verify');
 
 // State
 const currentView = ref('operations');
@@ -66,7 +71,7 @@ const showQRCode = ref(false);
 const cachedData = ref<Agent[]>([]);
 const lastUpdateTime = ref<number | null>(null);
 const autoRefreshMode = ref('off');
-const autoRefreshTimer = ref<any>(null);
+const autoRefreshTimer = ref<ReturnType<typeof setInterval> | null>(null);
 const isRefreshing = ref(false);
 const canInstall = ref(false);
 let deferredPrompt: any = null;
@@ -295,6 +300,10 @@ const emptyHint = computed(() => {
   if (agents.value.length > 0 && filtersActive.value) {
     return t('empty.filtered');
   }
+  // 连表格 ID 都没配置时，「点击刷新」是死胡同：刷新只会提示先去设置
+  if (!spreadsheetId.value) {
+    return t('empty.needSetup');
+  }
   return t('empty.hint');
 });
 
@@ -453,15 +462,16 @@ const ignoreFormCheck = () => {
   formCheckState.value = 'idle';
 };
 
-watch([checkinFormUrl, spreadsheetId], () => {
+// 表单链接、表格或后端地址变化后都应重新体检（防抖 600ms）
+watch([checkinFormUrl, spreadsheetId, apiBaseUrl], () => {
   if (formCheckTimer) clearTimeout(formCheckTimer);
   formCheckTimer = setTimeout(checkFormStatus, 600);
 });
 
 watch(showQRCode, (val) => {
   if (val) {
-    // Wait for DOM update
-    setTimeout(generateQRCode, 100);
+    // 等弹窗把 canvas 渲染出来再绘制
+    nextTick(generateQRCode);
   }
 });
 
@@ -529,11 +539,12 @@ const loadData = async (useCache = false, silent = false) => {
   if (!silent) {
     loading.value = true;
   }
+  // 请求地址提前构造：catch 里记日志时也要能定位现场
+  const requestUrl = `${apiBaseUrl.value}/data?spreadsheet_id=${encodeURIComponent(spreadsheetId.value)}`;
   try {
     if (!isSafeHttpUrl(apiBaseUrl.value)) {
       throw new Error(t('error.invalidApiUrl'));
     }
-    const requestUrl = `${apiBaseUrl.value}/data?spreadsheet_id=${encodeURIComponent(spreadsheetId.value)}`;
     const response = await fetch(requestUrl, {
       headers: { 'Accept': 'application/json' },
       cache: 'no-cache' // 强制浏览器向服务器发送请求，不使用本地强缓存
@@ -553,8 +564,12 @@ const loadData = async (useCache = false, silent = false) => {
       throw new Error(t('error.invalidResponse'));
     }
   } catch (error: any) {
-    addError(t('error.loadFailed', { message: error.message }));
-    console.error('API调用错误:', error);
+    // 静默刷新（自动刷新/大屏轮询）失败不弹 toast：离线横幅与「更新于」时间已反映数据陈旧，
+    // 每 10 秒弹一条只会盖住大屏与操作流；仅记日志供排查
+    if (!silent) {
+      addError(t('error.loadFailed', { message: error.message }));
+    }
+    dataLogger.error('加载数据失败', { url: requestUrl, reason: error?.message, error });
   } finally {
     if (!silent) {
       loading.value = false;
@@ -619,7 +634,6 @@ const toggleVerification = async (agent: Agent) => {
         } else {
           removeAgentModifiedTimeEntry(spreadsheetId.value, agent.AgentName);
         }
-      } else {
       }
     } else {
       throw new Error(result.message || t('error.verifyFailed', { message: `HTTP ${response.status}` }));
@@ -629,7 +643,14 @@ const toggleVerification = async (agent: Agent) => {
     // 回滚乐观更新时记录的修改时间，避免显示从未生效的时间戳
     removeAgentModifiedTimeEntry(spreadsheetId.value, agent.AgentName);
     addError(t('error.verifyFailed', { message: error.message }));
-    console.error('签到 API 调用错误:', error);
+    verifyLogger.error('签到状态写入失败', {
+      agent: agent.AgentName,
+      sheet: spreadsheetId.value,
+      attempted: newStatus,
+      rolledBackTo: originalStatus,
+      reason: error?.message,
+      error,
+    });
   } finally {
     verificationLoadingMap.value[agent.AgentName] = false;
   }
@@ -644,7 +665,14 @@ const beginUndoHold = (agent: Agent) => {
   holdStart = performance.now();
   pressState.value = { agent: agent.AgentName, progress: 0 };
   const tick = () => {
-    if (!pressState.value || pressState.value.agent !== agent.AgentName) return;
+    if (!pressState.value || pressState.value.agent !== agent.AgentName) {
+      // 长按已被取消或被其他按钮接管：本定时器再无用途，原地自清防止空转泄漏
+      if (holdTimer !== null) {
+        clearInterval(holdTimer);
+        holdTimer = null;
+      }
+      return;
+    }
     const progress = Math.min(1, (performance.now() - holdStart) / UNDO_HOLD_MS);
     pressState.value.progress = progress;
     if (progress >= 1) {
@@ -1098,7 +1126,7 @@ onUnmounted(() => {
     </header>
 
     <!-- 浮动玻璃底部导航 -->
-    <nav class="ifs-tabbar no-select" aria-label="主导航">
+    <nav class="ifs-tabbar no-select" :aria-label="t('nav.tabbarLabel')">
       <button class="ifs-tab" :class="{ 'is-active': currentView === 'operations' }" @click="currentView = 'operations'" :aria-current="currentView === 'operations' ? 'page' : undefined">
         <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
@@ -1598,54 +1626,54 @@ onUnmounted(() => {
               </div>
             </div>
           </AppCard>
-
-        <!-- 二维码弹窗 -->
-        <div v-if="showQRCode" class="modal-overlay" @click="showQRCode = false">
-          <AppCard class="w-full max-w-md" role="dialog" aria-modal="true" @click.stop>
-            <!-- 头部 -->
-            <div class="flex justify-between items-center mb-6">
-              <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-[var(--radius-tile)] flex items-center justify-center bg-white/60 dark:bg-white/10">
-                  <svg class="w-5 h-5 text-[var(--color-primary)] dark:text-[var(--color-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
-                  </svg>
-                </div>
-                <h3 class="text-lg font-semibold text-[var(--color-text)]">{{ t('qr.title') }}</h3>
-              </div>
-              <button @click="showQRCode = false" class="ifs-iconbtn" :aria-label="t('common.close')" :title="t('common.close')">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
-
-            <!-- 二维码容器 -->
-            <div class="flex justify-center mb-6">
-              <div class="qr-panel">
-                <canvas ref="qrcodeCanvas"></canvas>
-              </div>
-            </div>
-
-            <!-- 底部说明 -->
-            <div class="text-center space-y-3">
-              <p class="text-sm text-[var(--color-text-secondary)]">{{ t('qr.hint') }}</p>
-              <!-- Link is now dynamic -->
-              <div class="text-sm text-[var(--color-text-secondary)] break-all mt-4 text-center">
-                <p class="mb-2">{{ t('qr.linkLabel') }}</p>
-                <a v-if="safeCheckinFormUrl" :href="safeCheckinFormUrl" target="_blank" rel="noopener noreferrer" class="text-[var(--color-primary)] dark:text-[var(--color-primary)] hover:underline">{{ safeCheckinFormUrl }}</a>
-              </div>
-
-              <div class="flex items-center justify-center space-x-2 text-xs text-[var(--color-text-secondary)]">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span>{{ t('qr.closeHint') }}</span>
-              </div>
-            </div>
-          </AppCard>
-        </div>
       </div>
     </main>
+
+    <!-- 二维码弹窗：入口在全局顶栏，挂在根层级保证任意视图下都能打开 -->
+    <div v-if="showQRCode" class="modal-overlay" @click="showQRCode = false">
+      <AppCard class="w-full max-w-md" role="dialog" aria-modal="true" @click.stop>
+        <!-- 头部 -->
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-[var(--radius-tile)] flex items-center justify-center bg-white/60 dark:bg-white/10">
+              <svg class="w-5 h-5 text-[var(--color-primary)] dark:text-[var(--color-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-[var(--color-text)]">{{ t('qr.title') }}</h3>
+          </div>
+          <button @click="showQRCode = false" class="ifs-iconbtn" :aria-label="t('common.close')" :title="t('common.close')">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 二维码容器：链接不安全（非 http/https）时给出可行动解释，而不是留一块空白画布 -->
+        <div class="flex justify-center mb-6">
+          <div v-if="safeCheckinFormUrl" class="qr-panel">
+            <canvas ref="qrcodeCanvas"></canvas>
+          </div>
+          <p v-else class="text-sm text-[var(--color-danger-badge-text)]">{{ t('qr.invalidLink') }}</p>
+        </div>
+
+        <!-- 底部说明 -->
+        <div class="text-center space-y-3">
+          <p class="text-sm text-[var(--color-text-secondary)]">{{ t('qr.hint') }}</p>
+          <div v-if="safeCheckinFormUrl" class="text-sm text-[var(--color-text-secondary)] break-all mt-4 text-center">
+            <p class="mb-2">{{ t('qr.linkLabel') }}</p>
+            <a :href="safeCheckinFormUrl" target="_blank" rel="noopener noreferrer" class="text-[var(--color-primary)] dark:text-[var(--color-primary)] hover:underline">{{ safeCheckinFormUrl }}</a>
+          </div>
+
+          <div class="flex items-center justify-center space-x-2 text-xs text-[var(--color-text-secondary)]">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>{{ t('qr.closeHint') }}</span>
+          </div>
+        </div>
+      </AppCard>
+    </div>
 
     <!-- 开奖高亮弹窗：滚动 → 逐名揭示 → 完成；结果已先行落账，随时可关 -->
     <div
@@ -1753,7 +1781,7 @@ onUnmounted(() => {
             <div v-if="apTotalSum" class="kiosk-ap tabular-nums">AP +{{ apTotalSum.toLocaleString() }}</div>
           </section>
 
-          <section class="kiosk-qr" aria-label="QR">
+          <section class="kiosk-qr" :aria-label="t('kiosk.qrLabel')">
             <div v-if="safeCheckinFormUrl" class="kiosk-qr-panel">
               <canvas ref="kioskQrCanvas"></canvas>
             </div>
@@ -1855,9 +1883,9 @@ onUnmounted(() => {
           </div>
         </section>
 
-        <!-- 全空态：名单为空（如换场次后未加载）时兜底提示 -->
+        <!-- 全空态：名单为空（未加载或被清空）时兜底提示 -->
         <div v-if="!kioskUnchecked.length && !kioskChecked.length" class="kiosk-panel kiosk-panel-empty-all">
-          <p class="kiosk-panel-empty">{{ agents.length ? t('kiosk.noCheckins') : t('empty.title') }}</p>
+          <p class="kiosk-panel-empty">{{ t('kiosk.rosterMissing') }}</p>
         </div>
       </div>
 

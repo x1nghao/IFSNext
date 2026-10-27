@@ -9,7 +9,7 @@ interface Props {
   options: Option[];
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 const emit = defineEmits(['update:modelValue']);
 </script>
 

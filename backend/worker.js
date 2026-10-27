@@ -32,11 +32,30 @@ function jsonResponse(data, status = 200, extraHeaders = {}) {
   });
 }
 
-// 辅助函数：处理 Google Sheets API 频率限制
-function handleApiRateLimit(response) {
-  if (response.status === 429) {
-    throw new Error("Google Sheets API 频率限制，请稍后再试 (Quota exceeded)");
+// 把 Google API 的常见失败状态翻译成可行动提示：组织者看一眼就知道下一步改什么。
+// 原始响应体只进 Workers 日志，不对外（可能包含服务账号邮箱等敏感信息）。
+function describeGoogleApiError(status, context) {
+  if (status === 401) {
+    return `服务账号凭据被 Google 拒绝（401）：请检查环境变量 GOOGLE_PRIVATE_KEY 与 GOOGLE_CLIENT_EMAIL（${context}）`;
   }
+  if (status === 403) {
+    return `无权访问该表格（403）：请在 Google 表格「共享」中把服务账号邮箱添加为编辑者（${context}）`;
+  }
+  if (status === 404) {
+    return `找不到表格或工作表（404）：请核对表格 ID 与工作表名称是否正确（${context}）`;
+  }
+  if (status === 429) {
+    return `Google Sheets API 频率限制，请稍后再试（${context}）`;
+  }
+  return `Google Sheets API 请求失败: HTTP ${status}（${context}）`;
+}
+
+// 统一的 Google API 响应校验：失败时记录完整现场并抛出带修复建议的错误
+async function assertGoogleResponse(response, context) {
+  if (response.ok) return;
+  const detail = await response.text();
+  console.error(`[google-api] ${context} 失败: HTTP ${response.status}`, detail);
+  throw new Error(describeGoogleApiError(response.status, context));
 }
 
 // 处理 Base64 编码
@@ -76,7 +95,7 @@ async function getAccessToken() {
   }
   
   if (!SERVICE_ACCOUNT_INFO.private_key || !SERVICE_ACCOUNT_INFO.client_email) {
-    throw new Error("Missing Google Service Account credentials");
+    throw new Error('缺少 Google 服务账号凭据：请在 Worker 环境变量中配置 GOOGLE_PRIVATE_KEY 与 GOOGLE_CLIENT_EMAIL');
   }
 
   const jwtHeader = {
@@ -129,7 +148,7 @@ async function getAccessToken() {
   if (!response.ok) {
     // 详情只进 Workers 日志，不外发：响应体可能包含服务账号邮箱等敏感信息
     const error = await response.text();
-    console.error('获取访问令牌失败:', response.status, error);
+    console.error('[oauth] 换取访问令牌失败: HTTP', response.status, error);
     throw new Error(`获取访问令牌失败: HTTP ${response.status}`);
   }
 
@@ -143,7 +162,8 @@ async function getAccessToken() {
 // 优化：支持 range 参数，避免不必要的数据传输
 async function getSheetData(spreadsheetId, sheetName, range = 'A1:L2000') {
   const token = await getAccessToken();
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${range}`;
+  // 工作表名经 URL 编码，兼容含空格/中文的名称（A1 记法里的 ! 分隔符不编码）
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}!${range}`;
 
   const response = await fetch(url, {
     headers: {
@@ -151,12 +171,7 @@ async function getSheetData(spreadsheetId, sheetName, range = 'A1:L2000') {
     }
   });
 
-  if (!response.ok) {
-    handleApiRateLimit(response);
-    const error = await response.text();
-    console.error('获取数据失败:', response.status, error);
-    throw new Error(`获取数据失败: HTTP ${response.status}`);
-  }
+  await assertGoogleResponse(response, `读取表格 ${spreadsheetId}/${sheetName}`);
 
   const data = await response.json();
   return data.values || [];
@@ -199,18 +214,15 @@ async function getSheetTitles(spreadsheetId) {
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` }
   });
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('获取工作表列表失败:', response.status, error);
-    throw new Error(`获取工作表列表失败: HTTP ${response.status}`);
-  }
+  await assertGoogleResponse(response, `列出表格 ${spreadsheetId} 的工作表`);
   const data = await response.json();
   return (data.sheets || []).map(s => s.properties && s.properties.title).filter(Boolean);
 }
 
 // 更新 Google Sheets 中的字段
-async function updateSheetCell(spreadsheetId, sheetName, rowIndex, colLetter, value) {  const token = await getAccessToken();
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!${colLetter}${rowIndex}?valueInputOption=RAW`;
+async function updateSheetCell(spreadsheetId, sheetName, rowIndex, colLetter, value) {
+  const token = await getAccessToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}!${colLetter}${rowIndex}?valueInputOption=RAW`;
 
   const response = await fetch(url, {
     method: 'PUT',
@@ -224,12 +236,7 @@ async function updateSheetCell(spreadsheetId, sheetName, rowIndex, colLetter, va
     })
   });
 
-  if (!response.ok) {
-    handleApiRateLimit(response);
-    const error = await response.text();
-    console.error('更新失败:', response.status, error);
-    throw new Error(`更新失败: HTTP ${response.status}`);
-  }
+  await assertGoogleResponse(response, `写入 ${spreadsheetId}/${sheetName}!${colLetter}${rowIndex}`);
 
   return 'Update successful';
 }
@@ -319,7 +326,7 @@ async function handleRequest(event) {
       
       return response;
     } catch (error) {
-      console.error('/data 处理失败:', error);
+      console.error('[/data] 处理失败:', error);
       return jsonResponse({ error: error.message }, 500);
     }
   }
@@ -369,7 +376,7 @@ async function handleRequest(event) {
 
       return jsonResponse({ status: 'success', message: updateResult, new_value: newValue });
     } catch (error) {
-      console.error('/verify 处理失败:', error);
+      console.error('[/verify] 处理失败:', error);
       return jsonResponse({ error: error.message }, 500);
     }
   }
@@ -392,7 +399,7 @@ async function handleRequest(event) {
         try {
           response = await fetch(normalized, { signal: AbortSignal.timeout(8000), redirect: 'follow' });
         } catch (e) {
-          console.error('/form-check 表单页获取失败:', e);
+          console.error('[/form-check] 表单页获取失败:', e);
         }
 
         if (response && response.status === 404) {
@@ -416,7 +423,7 @@ async function handleRequest(event) {
             const titles = await getSheetTitles(spreadsheetId);
             result.linkedLikely = titles.some(t => /^form responses/i.test(t) || t.includes('表单响应'));
           } catch (e) {
-            console.error('/form-check 表格检查失败:', e);
+            console.error('[/form-check] 表格检查失败:', e);
             result.linkedLikely = null;
           }
         }
@@ -424,10 +431,10 @@ async function handleRequest(event) {
 
       return jsonResponse(result, 200, { 'Cache-Control': 'public, max-age=30' });
     } catch (error) {
-      console.error('/form-check 处理失败:', error);
+      console.error('[/form-check] 处理失败:', error);
       return jsonResponse({ error: error.message }, 500);
     }
   }
 
-  return new Response('Not Found', { status: 404, headers: { 'Access-Control-Allow-Origin': '*' } });
+  return jsonResponse({ error: 'Not Found' }, 404);
 }

@@ -1,6 +1,10 @@
 import { test } from 'node:test';
-import { strictEqual } from 'node:assert/strict';
-import { detectBrowserLocale } from './locale.ts';
+import { deepStrictEqual, strictEqual } from 'node:assert/strict';
+import { detectBrowserLocale, APP_LOCALES } from './locale.ts';
+
+test('APP_LOCALES 覆盖全部支持的语言（main.ts 恢复本地语言时按它校验）', () => {
+  deepStrictEqual([...APP_LOCALES].sort(), ['en-US', 'zh-CN', 'zh-TW']);
+});
 
 test('繁体中文变体归入 zh-TW', () => {
   strictEqual(detectBrowserLocale('zh-TW'), 'zh-TW');

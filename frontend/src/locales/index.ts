@@ -1,6 +1,6 @@
 export const messages = {
   'zh-CN': {
-    nav: { settings: '设置', operations: '签到', lottery: '抽奖', install: '安装' },
+    nav: { settings: '设置', operations: '签到', lottery: '抽奖', install: '安装', tabbarLabel: '主导航' },
     common: { close: '关闭', clear: '清除' },
     theme: { label: '外观', auto: '自动', light: '浅色', dark: '深色' },
     offline: { banner: '当前离线，显示的是最近一次缓存的数据' },
@@ -51,7 +51,7 @@ export const messages = {
       resistance: '抵抗军',
       enlightened: '启蒙军'
     },
-    kiosk: { title: '签到实况', enter: '大屏展示', exit: '退出大屏展示', scanToCheckIn: '扫码签到', qrMissing: '未设置表单链接，二维码不显示', noCheckins: '还没有人签到', legendNone: '未签到', legendIn: '已签到', legendOut: 'AP 达标', legendAlert: 'AP 未达标' },
+    kiosk: { title: '签到实况', enter: '大屏展示', exit: '退出大屏展示', scanToCheckIn: '扫码签到', qrMissing: '未设置表单链接，二维码不显示', rosterMissing: '名单尚未加载或已被清空：退出大屏，在签到页点「刷新」即可重新拉取', qrLabel: '签到二维码', legendNone: '未签到', legendIn: '已签到', legendOut: 'AP 达标', legendAlert: 'AP 未达标' },
     lottery: {
       title: '现场抽奖',
       enabledLabel: '抽奖功能',
@@ -83,7 +83,7 @@ export const messages = {
     refreshing: '刷新中…',
     refreshData: '刷新',
     loadingData: '数据加载中…',
-    empty: { title: '暂无数据', hint: '点击“刷新”加载数据', noMatch: '没有匹配 “{q}” 的 Agent', filtered: '当前筛选条件下没有 Agent' },
+    empty: { title: '暂无数据', hint: '点击“刷新”加载数据', needSetup: '还没有配置表格 ID：到「设置」粘贴表格链接，回来点“刷新”即可加载名单', noMatch: '没有匹配 “{q}” 的 Agent', filtered: '当前筛选条件下没有 Agent' },
     status: { checkedIn: '已签到', notCheckedIn: '未签到' },
     actions: { check: '签到', uncheck: '撤销', holdHint: '长按 1 秒撤销' },
     formCheck: {
@@ -98,7 +98,7 @@ export const messages = {
       ignore: '忽略'
     },
     list: { countPrefix: '共', countSuffix: '人' },
-    qr: { title: '签到二维码', linkLabel: '链接：', closeHint: '点击空白处关闭', hint: '扫码或点击链接签到' },
+    qr: { title: '签到二维码', linkLabel: '链接：', closeHint: '点击空白处关闭', hint: '扫码或点击链接签到', invalidLink: '表单链接不是有效的 http(s) 地址，无法生成二维码：请回「设置」修改链接' },
     error: {
       installFailed: '安装失败：{message}',
       qrFailed: '二维码生成失败：{message}',
@@ -113,7 +113,7 @@ export const messages = {
     }
   },
   'en-US': {
-    nav: { settings: 'Settings', operations: 'Check-in', lottery: 'Lottery', install: 'Install' },
+    nav: { settings: 'Settings', operations: 'Check-in', lottery: 'Lottery', install: 'Install', tabbarLabel: 'Main navigation' },
     common: { close: 'Close', clear: 'Clear' },
     theme: { label: 'Appearance', auto: 'Auto', light: 'Light', dark: 'Dark' },
     offline: { banner: 'You are offline. Showing the last cached data.' },
@@ -164,7 +164,7 @@ export const messages = {
       resistance: 'Resistance',
       enlightened: 'Enlightened'
     },
-    kiosk: { title: 'Check-in Live', enter: 'Kiosk view', exit: 'Exit kiosk view', scanToCheckIn: 'Scan to check in', qrMissing: 'No form link set. The QR code is hidden.', noCheckins: 'No check-ins yet', legendNone: 'Not checked in', legendIn: 'Checked in', legendOut: 'AP goal met', legendAlert: 'AP goal not met' },
+    kiosk: { title: 'Check-in Live', enter: 'Kiosk view', exit: 'Exit kiosk view', scanToCheckIn: 'Scan to check in', qrMissing: 'No form link set. The QR code is hidden.', rosterMissing: 'Roster not loaded (or empty). Exit kiosk view, then tap Refresh on the check-in page.', qrLabel: 'Check-in QR code', legendNone: 'Not checked in', legendIn: 'Checked in', legendOut: 'AP goal met', legendAlert: 'AP goal not met' },
     lottery: {
       title: 'Live Lottery',
       enabledLabel: 'Lottery',
@@ -196,7 +196,7 @@ export const messages = {
     refreshing: 'Refreshing…',
     refreshData: 'Refresh',
     loadingData: 'Loading…',
-    empty: { title: 'No Data', hint: 'Click Refresh to load data', noMatch: 'No agents match "{q}"', filtered: 'No agents match the current filters' },
+    empty: { title: 'No Data', hint: 'Click Refresh to load data', needSetup: 'No sheet ID configured yet: paste the sheet link in Settings, then come back and tap Refresh', noMatch: 'No agents match "{q}"', filtered: 'No agents match the current filters' },
     status: { checkedIn: 'Checked In', notCheckedIn: 'Not Checked In' },
     actions: { check: 'Check In', uncheck: 'Undo', holdHint: 'Hold 1s to undo' },
     formCheck: {
@@ -211,7 +211,7 @@ export const messages = {
       ignore: 'Ignore'
     },
     list: { countPrefix: 'Total', countSuffix: '' },
-    qr: { title: 'Check-in QR', linkLabel: 'Link:', closeHint: 'Tap outside to close', hint: 'Scan or tap the link to check in' },
+    qr: { title: 'Check-in QR', linkLabel: 'Link:', closeHint: 'Tap outside to close', hint: 'Scan or tap the link to check in', invalidLink: 'The form link is not a valid http(s) URL, so no QR code can be generated. Fix the link in Settings.' },
     error: {
       installFailed: 'Install failed: {message}',
       qrFailed: 'QR code generation failed: {message}',
@@ -226,7 +226,7 @@ export const messages = {
     }
   },
   'zh-TW': {
-    nav: { settings: '設定', operations: '簽到', lottery: '抽獎', install: '安裝' },
+    nav: { settings: '設定', operations: '簽到', lottery: '抽獎', install: '安裝', tabbarLabel: '主導覽' },
     common: { close: '關閉', clear: '清除' },
     theme: { label: '外觀', auto: '自動', light: '淺色', dark: '深色' },
     offline: { banner: '目前離線，顯示的是最近一次快取的資料' },
@@ -277,7 +277,7 @@ export const messages = {
       resistance: '抵抗軍',
       enlightened: '啟蒙軍'
     },
-    kiosk: { title: '簽到實況', enter: '大螢幕展示', exit: '退出大螢幕展示', scanToCheckIn: '掃碼簽到', qrMissing: '未設定表單連結，QR Code 不顯示', noCheckins: '還沒有人簽到', legendNone: '未簽到', legendIn: '已簽到', legendOut: 'AP 達標', legendAlert: 'AP 未達標' },
+    kiosk: { title: '簽到實況', enter: '大螢幕展示', exit: '退出大螢幕展示', scanToCheckIn: '掃碼簽到', qrMissing: '未設定表單連結，QR Code 不顯示', rosterMissing: '名單尚未載入或已被清空：退出大螢幕，在簽到頁點「重新整理」即可重新拉取', qrLabel: '簽到 QR Code', legendNone: '未簽到', legendIn: '已簽到', legendOut: 'AP 達標', legendAlert: 'AP 未達標' },
     lottery: {
       title: '現場抽獎',
       enabledLabel: '抽獎功能',
@@ -309,7 +309,7 @@ export const messages = {
     refreshing: '重新整理中…',
     refreshData: '重新整理',
     loadingData: '資料載入中…',
-    empty: { title: '暫無資料', hint: '點擊「重新整理」載入資料', noMatch: '沒有符合 "{q}" 的 Agent', filtered: '目前篩選條件下沒有 Agent' },
+    empty: { title: '暫無資料', hint: '點擊「重新整理」載入資料', needSetup: '還沒有設定表格 ID：到「設定」貼上表格連結，回來點「重新整理」即可載入名單', noMatch: '沒有符合 "{q}" 的 Agent', filtered: '目前篩選條件下沒有 Agent' },
     status: { checkedIn: '已簽到', notCheckedIn: '未簽到' },
     actions: { check: '簽到', uncheck: '撤銷', holdHint: '長按 1 秒撤銷' },
     formCheck: {
@@ -324,7 +324,7 @@ export const messages = {
       ignore: '忽略'
     },
     list: { countPrefix: '共', countSuffix: '人' },
-    qr: { title: '簽到 QR Code', linkLabel: '連結：', closeHint: '點擊空白處關閉', hint: '掃碼或點擊連結簽到' },
+    qr: { title: '簽到 QR Code', linkLabel: '連結：', closeHint: '點擊空白處關閉', hint: '掃碼或點擊連結簽到', invalidLink: '表單連結不是有效的 http(s) 地址，無法產生 QR Code：請回「設定」修改連結' },
     error: {
       installFailed: '安裝失敗：{message}',
       qrFailed: 'QR Code 生成失敗：{message}',

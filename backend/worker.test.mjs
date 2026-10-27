@@ -86,28 +86,21 @@ test('白名单内的表格放行（无凭据时返回 500 的自有错误信息
   const worker = loadWorker({ allowedSpreadsheetIds: 'id-1' });
   const response = await worker.handle(new Request('https://worker.test/data?spreadsheet_id=id-1'));
   assert.equal(response.status, 500);
-  assert.equal((await response.json()).error, 'Missing Google Service Account credentials');
+  assert.match((await response.json()).error, /缺少 Google 服务账号凭据/);
 });
 
 test('未设置白名单时保持旧行为（不限制表格）', async () => {
   const worker = loadWorker();
   const response = await worker.handle(new Request('https://worker.test/data?spreadsheet_id=any'));
   assert.equal(response.status, 500);
-  assert.equal((await response.json()).error, 'Missing Google Service Account credentials');
+  assert.match((await response.json()).error, /缺少 Google 服务账号凭据/);
 });
 
-test('未知路径返回 404', async () => {
+test('未知路径返回 404（JSON 错误体，与其他路由一致）', async () => {
   const worker = loadWorker();
   const response = await worker.handle(new Request('https://worker.test/other?spreadsheet_id=x'));
   assert.equal(response.status, 404);
-});
-
-test('OPTIONS 预检返回 CORS 头', async () => {
-  const worker = loadWorker();
-  const response = await worker.handle(new Request('https://worker.test/data', { method: 'OPTIONS' }));
-  assert.equal(response.status, 200);
-  assert.equal(response.headers.get('Access-Control-Allow-Origin'), '*');
-  assert.match(response.headers.get('Access-Control-Allow-Methods'), /POST/);
+  assert.deepEqual(await response.json(), { error: 'Not Found' });
 });
 
 test('OPTIONS 预检返回 CORS 头', async () => {
@@ -346,4 +339,71 @@ test('verify 缺少 agent_name 返回 400', async () => {
     new Request('https://worker.test/verify?spreadsheet_id=sheet-1&value=TRUE', { method: 'POST' })
   );
   assert.equal(response.status, 400);
+});
+
+// ── Google API 错误的可行动提示映射 ──
+
+// Google 侧按指定状态码失败的桩：oauth 正常换 token，其余请求一律返回该状态码
+function googleStatusFetchStub(status) {
+  return async (url) => {
+    if (String(url).includes('oauth2.googleapis.com/token')) {
+      return new Response(JSON.stringify({ access_token: 'test-token', expires_in: 3600 }), { status: 200 });
+    }
+    return new Response('google error', { status });
+  };
+}
+
+async function loadWorkerWithCredentials(fetchImpl) {
+  const pem = await generateTestPem();
+  return loadWorker({
+    fetchImpl,
+    credentials: { privateKey: pem, clientEmail: 'sa@test.iam.gserviceaccount.com' },
+  });
+}
+
+test('/data 遇 Google 404 时提示核对表格 ID', async () => {
+  const worker = await loadWorkerWithCredentials(googleStatusFetchStub(404));
+  const response = await worker.handle(new Request('https://worker.test/data?spreadsheet_id=nope'));
+  assert.equal(response.status, 500);
+  const body = await response.json();
+  assert.match(body.error, /找不到表格或工作表（404）/);
+  assert.match(body.error, /核对表格 ID/);
+});
+
+test('/verify 遇 Google 403 时提示添加服务账号为编辑者', async () => {
+  const worker = await loadWorkerWithCredentials(googleStatusFetchStub(403));
+  const response = await worker.handle(
+    new Request('https://worker.test/verify?spreadsheet_id=s1&agent_name=Alpha&value=TRUE', { method: 'POST' })
+  );
+  assert.equal(response.status, 500);
+  const body = await response.json();
+  assert.match(body.error, /无权访问该表格（403）/);
+  assert.match(body.error, /编辑者/);
+});
+
+test('sheet_name 含空格时先 URL 编码再请求', async () => {
+  const pem = await generateTestPem();
+  const seen = [];
+  const worker = loadWorker({
+    fetchImpl: async (url, init = {}) => {
+      const u = String(url);
+      seen.push(u);
+      if (u.includes('oauth2.googleapis.com/token')) {
+        return new Response(JSON.stringify({ access_token: 'test-token', expires_in: 3600 }), { status: 200 });
+      }
+      if (u.includes('/values/')) {
+        return new Response(JSON.stringify({ values: [['FALSE', '', 'Resistance', '', 'Alpha']] }), { status: 200 });
+      }
+      if (init.method === 'PUT') {
+        return new Response(JSON.stringify({ updatedCells: 1 }), { status: 200 });
+      }
+      return new Response('unexpected', { status: 500 });
+    },
+    credentials: { privateKey: pem, clientEmail: 'sa@test.iam.gserviceaccount.com' },
+  });
+  const response = await worker.handle(
+    new Request('https://worker.test/verify?spreadsheet_id=s1&agent_name=Alpha&value=TRUE&sheet_name=' + encodeURIComponent('My Sheet'), { method: 'POST' })
+  );
+  assert.equal(response.status, 200);
+  assert.ok(seen.some(u => u.includes('/values/My%20Sheet!A:E')), `应请求编码后的工作表名: ${seen.join(' | ')}`);
 });
