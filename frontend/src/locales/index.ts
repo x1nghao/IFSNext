@@ -94,7 +94,8 @@ export const messages = {
       notlinked: '表格里没有“表单响应”工作表，表单可能未关联到此表格',
       invalid: '这不是有效的 Google 表单链接',
       failed: '暂时无法检查表单状态',
-      goSettings: '去设置'
+      goSettings: '去设置',
+      ignore: '忽略'
     },
     list: { countPrefix: '共', countSuffix: '人' },
     qr: { title: '签到二维码', linkLabel: '链接：', closeHint: '点击空白处关闭', hint: '扫码或点击链接签到' },
@@ -206,7 +207,8 @@ export const messages = {
       notlinked: 'No "Form Responses" tab was found in this spreadsheet. The form may not be linked to it.',
       invalid: 'This is not a valid Google Forms link',
       failed: 'Form status check unavailable right now',
-      goSettings: 'Go to Settings'
+      goSettings: 'Go to Settings',
+      ignore: 'Ignore'
     },
     list: { countPrefix: 'Total', countSuffix: '' },
     qr: { title: 'Check-in QR', linkLabel: 'Link:', closeHint: 'Tap outside to close', hint: 'Scan or tap the link to check in' },
@@ -318,7 +320,8 @@ export const messages = {
       notlinked: '表格裡沒有「表單回應」工作表，表單可能未關聯到此表格',
       invalid: '這不是有效的 Google 表單連結',
       failed: '暫時無法檢查表單狀態',
-      goSettings: '前往設定'
+      goSettings: '前往設定',
+      ignore: '忽略'
     },
     list: { countPrefix: '共', countSuffix: '人' },
     qr: { title: '簽到 QR Code', linkLabel: '連結：', closeHint: '點擊空白處關閉', hint: '掃碼或點擊連結簽到' },

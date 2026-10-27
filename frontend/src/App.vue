@@ -29,6 +29,7 @@ import {
   removeAgentModifiedTime,
 } from '@/utils/agentModifiedAt';
 import { isSafeHttpUrl } from '@/utils/url';
+import { parseIgnoredFormUrls, addIgnoredFormUrl } from '@/utils/formCheck';
 
 const { t, locale } = useI18n();
 
@@ -386,11 +387,22 @@ const formCheckState = ref<FormCheckState>('idle');
 let formCheckTimer: ReturnType<typeof setTimeout> | null = null;
 let formCheckSeq = 0;
 
+// 忽略名单：链接可能并非 Google 表单而是其他引导页，组织者对误报点击「忽略」后收进名单，
+// 本机后续遇到同一链接直接放行，不再检查也不再提示
+const FORM_IGNORE_STORAGE_KEY = 'ifsnext_ignored_form_urls';
+let rawIgnoredFormUrls: string | null = null;
+try { rawIgnoredFormUrls = localStorage.getItem(FORM_IGNORE_STORAGE_KEY); } catch (e) {}
+const ignoredFormUrls = ref<string[]>(parseIgnoredFormUrls(rawIgnoredFormUrls));
+
 const isGoogleFormUrl = (url: string) => /^https:\/\/docs\.google\.com\/forms\/d(?:\/e)?\/[a-zA-Z0-9_-]+/.test(url);
 
 const checkFormStatus = async () => {
   const url = checkinFormUrl.value.trim();
   if (!url || !url.includes('docs.google.com')) {
+    formCheckState.value = 'idle';
+    return;
+  }
+  if (ignoredFormUrls.value.includes(url)) {
     formCheckState.value = 'idle';
     return;
   }
@@ -427,6 +439,18 @@ const checkFormStatus = async () => {
   } catch {
     if (seq === formCheckSeq) formCheckState.value = 'failed';
   }
+};
+
+// 点「忽略」：当前链接收进白名单并立即回到静默；作废在途请求，防止旧检查结果把告警顶回来
+const ignoreFormCheck = () => {
+  const next = addIgnoredFormUrl(ignoredFormUrls.value, checkinFormUrl.value.trim());
+  if (next !== ignoredFormUrls.value) {
+    ignoredFormUrls.value = next;
+    try { localStorage.setItem(FORM_IGNORE_STORAGE_KEY, JSON.stringify(next)); } catch (e) {}
+  }
+  if (formCheckTimer) clearTimeout(formCheckTimer);
+  formCheckSeq++;
+  formCheckState.value = 'idle';
 };
 
 watch([checkinFormUrl, spreadsheetId], () => {
@@ -678,6 +702,11 @@ watch(currentView, (newVal) => {
 // 签到页告警条：仅显示可行动的确定性表单异常；failed 属瞬时网络问题不上浮
 const formWarningActive = computed(() =>
   ['closed', 'notfound', 'notlinked'].includes(formCheckState.value)
+);
+
+// 「可能有问题」的提示都可一键忽略（ignored 状态即已放行）；failed 属瞬时网络问题，忽略无意义
+const formCheckIgnorable = computed(() =>
+  ['invalid', 'notfound', 'closed', 'notlinked'].includes(formCheckState.value)
 );
 
 // ── 大屏展示模式 ──
@@ -1151,6 +1180,7 @@ onUnmounted(() => {
                 'text-[var(--color-danger-badge-text)]': formCheckState === 'notfound' || formCheckState === 'invalid' || formCheckState === 'failed'
               }">
                 {{ t('formCheck.' + formCheckState) }}
+                <button v-if="formCheckIgnorable" type="button" class="form-warning-action" @click="ignoreFormCheck">{{ t('formCheck.ignore') }}</button>
               </p>
               <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
                 {{ t('settings.qrHint') }}
@@ -1346,6 +1376,7 @@ onUnmounted(() => {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0L3.33 16a2 2 0 001.74 3z"></path>
           </svg>
           <span class="flex-1">{{ t('formCheck.' + formCheckState) }}</span>
+          <button class="form-warning-action" @click="ignoreFormCheck">{{ t('formCheck.ignore') }}</button>
           <button class="form-warning-action" @click="currentView = 'settings'">{{ t('formCheck.goSettings') }}</button>
         </div>
 
