@@ -1,6 +1,7 @@
 {
   "name": "ifsnext-root",
   "private": true,
+  "type": "module",
   "scripts": {
     "frontend:dev": "npm run dev --prefix frontend",
     "frontend:build": "npm run build --prefix frontend",

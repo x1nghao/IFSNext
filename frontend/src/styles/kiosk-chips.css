@@ -1,0 +1,114 @@
+/* 大屏名单胶囊：双钩状态（参考 Telegram 已读回执）、胶囊词云排布与图例条。 */
+/* ═══ 大屏双钩状态（参考 Telegram 已读回执） ═══ */
+/* 双钩位于 ID 之后：高度约为胶囊字号的一半，跟随字号的字面比例 */
+.kiosk-mark {
+    flex: none;
+    width: 1.05em;
+    height: 0.5em;
+    margin-left: 0.4em;
+    align-self: center;
+}
+.kiosk-mark .mark-path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.45; /* 空心钩：弱化描边 */
+}
+.kiosk-mark .mark-path.is-solid {
+    opacity: 1; /* 实心钩：全强度 */
+}
+/* 未达标签退警示：第二枚钩标红 */
+.kiosk-mark .mark-path.is-alert { stroke: var(--color-danger); opacity: 1; }
+/* 达标签退（完成）：第二枚钩为完成绿，与警示红一眼区分（仅非警示的第二枚） */
+.kiosk-mark .mark-path.is-solid:not(.is-alert):nth-child(2) { stroke: var(--color-success); }
+/* 未达标签退的胶囊：名字标红 + 黄色边框 */
+.kiosk-chip.is-alert {
+    border: 2px solid var(--color-warning);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+}
+.kiosk-chip.is-alert .kiosk-chip-name { color: var(--color-danger); }
+.kiosk-chip .kiosk-chip-name { overflow: hidden; text-overflow: ellipsis; }
+
+/* 图例条：底部中央横排四种状态 */
+/* 图例条：底部中央横排四种状态；用内容层实色卡材质（而非玻璃），
+   在暗色画布与面板之上都有明确边界和最大对比度 */
+.kiosk-legend {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(44px + env(safe-area-inset-bottom));
+    z-index: var(--z-kiosk-legend);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px clamp(12px, 2vw, 26px);
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: var(--color-card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-card);
+    font-size: clamp(11px, 1.4vmin, 14px);
+    font-weight: 600;
+    color: var(--color-text);
+}
+html.dark .kiosk-legend { background: var(--color-card-bg-dark); }
+/* 图例里的空心钩比名单里的更实一点：图例要一眼可读，名单里才需要弱化 */
+.kiosk-legend .kiosk-mark .mark-path:not(.is-solid):not(.is-alert) { opacity: 0.85; }
+.kiosk-legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.kiosk-legend-item .kiosk-mark { width: 1.6em; height: 0.75em; margin-right: 0; }
+.kiosk-legend-item.is-alert-demo .kiosk-chip-name { color: var(--color-danger); font-weight: 700; }
+.kiosk-legend-item.is-alert-demo .mark-path.is-alert { stroke: var(--color-danger); }
+
+/* 名单胶囊：未签到为中性色，已签到放大并着阵营色；
+   词云式布局（flex-grow + space-between）让每行铺满面板宽度 */
+.kiosk-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.32em 0.85em;
+    border-radius: 999px;
+    font-size: clamp(13px, 1.7vmin, 19px);
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--color-control-bg);
+    color: var(--color-text);
+    min-width: 0;
+}
+html.dark .kiosk-chip { background: var(--color-control-bg-dark); }
+.kiosk-chip.is-resistance { background: var(--color-resistance-bg); color: var(--color-resistance-text); }
+.kiosk-chip.is-enlightened { background: var(--color-enlightened-bg); color: var(--color-enlightened-text); }
+/* 已签到与未签到同尺寸：统一词云自适应排布，靠双钩区分状态而非字号 */
+
+/* 胶囊流：自然宽度（随名字长短），行装不下才换行；
+   人数少时整体向上对齐、行距恒定、留白沉底，不强行铺满；
+   溢出：JS 仅标记 is-scrolling 启用无缝滚动，测量与布局彻底解耦 */
+.kiosk-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: clamp(8px, 1.2vmin, 14px);
+}
+.kiosk-chip {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    flex: 0 1 auto;
+    max-width: 100%;
+}
+.kiosk-chip .kiosk-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 窄屏（<700px，手机竖屏）：图例改为随流排在名单下方，不再悬浮盖住胶囊。
+   必须与图例基础规则同文件且晚于其出现（同特异性下源码顺序取胜） */
+@media (max-width: 699px) {
+    .kiosk-legend {
+        position: static;
+        transform: none;
+        align-self: center;
+        margin: 0 12px 4px;
+    }
+}

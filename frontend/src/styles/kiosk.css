@@ -1,0 +1,341 @@
+/* 大屏展示模式：覆盖层网格、统计列、二维码面板、名单面板与跑马灯、
+   长宽比二分布局、面板缺员自适应与尺寸补丁、页脚。 */
+/* ═══ 大屏展示模式 ═══ */
+.kiosk-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-kiosk);
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg);
+}
+.kiosk-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(20px + env(safe-area-inset-top)) 28px 0;
+}
+.kiosk-title {
+    font-size: clamp(18px, 2.5vw, 28px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+}
+/* 主体网格：窄屏单列堆叠（统计+二维码 → 未签到 → 已签到），宽屏三栏并排 */
+.kiosk-body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    gap: clamp(10px, 1.6vmin, 18px);
+    padding: 0 clamp(12px, 2.4vmin, 28px) clamp(8px, 1.2vmin, 14px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-areas:
+        "left"
+        "unchecked"
+        "checked";
+}
+.kiosk-left {
+    grid-area: left;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(10px, 2vh, 22px);
+    min-height: 0;
+}
+.kiosk-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(8px, 1.6vmin, 16px);
+    text-align: center;
+}
+.kiosk-big-num {
+    font-size: clamp(52px, 13vmin, 150px);
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--color-primary);
+    font-variant-numeric: tabular-nums;
+    animation: kiosk-tick 0.5s ease;
+}
+@keyframes kiosk-tick {
+    from { transform: scale(1.04); opacity: 0.6; }
+    to { transform: scale(1); opacity: 1; }
+}
+.kiosk-sub {
+    font-size: clamp(13px, 2.2vmin, 26px);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+.kiosk-progress {
+    /* 与 .kiosk-factions 同宽（92vw），两条总进度与两条阵营进度左右边缘对齐；
+       高度也与阵营条一致（clamp(10px,1.6vmin,16px)），同族进度条等高 */
+    width: min(92vw, 640px);
+    height: clamp(10px, 1.6vmin, 16px);
+    border-radius: 999px;
+    background: var(--color-control-bg-strong);
+    overflow: hidden;
+}
+html.dark .kiosk-progress { background: var(--color-control-bg-strong-dark); }
+.kiosk-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--color-primary);
+    box-shadow: 0 0 24px rgba(20, 163, 174, 0.5);
+    transition: width 0.6s ease;
+}
+.kiosk-factions {
+    display: flex;
+    gap: clamp(12px, 4vw, 48px);
+    width: min(92vw, 640px);
+}
+.kiosk-faction { flex: 1; min-width: 0; }
+.kiosk-faction-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: clamp(12px, 1.9vmin, 20px);
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--color-text-secondary);
+}
+.kiosk-faction-bar {
+    height: clamp(10px, 1.6vmin, 16px);
+    border-radius: 999px;
+    background: var(--color-control-bg-strong);
+    overflow: hidden;
+}
+html.dark .kiosk-faction-bar { background: var(--color-control-bg-strong-dark); }
+.kiosk-faction-bar .is-resistance,
+.kiosk-faction-bar .is-enlightened {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.6s ease;
+}
+.kiosk-faction-bar .is-resistance { background: var(--color-resistance); }
+.kiosk-faction-bar .is-enlightened { background: var(--color-enlightened); }
+.kiosk-ap {
+    font-size: clamp(13px, 2.1vmin, 22px);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+/* 签到二维码：白色面板保证扫码对比度，画布尺寸随视口伸缩 */
+.kiosk-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.kiosk-qr-panel {
+    width: clamp(110px, 32vmin, 240px);
+    padding: clamp(8px, 1.2vmin, 14px);
+    background: #fff;
+    border-radius: var(--radius-tile);
+    box-shadow: 0 4px 18px rgba(16, 42, 48, 0.14);
+}
+.kiosk-qr-panel canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+.kiosk-qr-caption {
+    font-size: clamp(12px, 1.6vmin, 17px);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-align: center;
+}
+.kiosk-qr-caption.is-missing { opacity: 0.7; font-weight: 400; }
+
+/* 名单面板 */
+.kiosk-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: clamp(12px, 1.8vmin, 22px);
+    border-radius: var(--radius-card);
+    background: var(--color-card-bg);
+    border: 1px solid var(--card-border);
+}
+html.dark .kiosk-panel { background: var(--color-card-bg-dark); }
+.kiosk-panel-unchecked { grid-area: unchecked; }
+.kiosk-panel-checked { grid-area: checked; }
+.kiosk-panel-head {
+    flex: none;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: clamp(14px, 2vmin, 22px);
+    font-weight: 700;
+    color: var(--color-text);
+    padding-bottom: clamp(8px, 1.2vmin, 14px);
+}
+.kiosk-panel-count {
+    font-size: 0.9em;
+    color: var(--color-text-secondary);
+}
+.kiosk-panel-empty {
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    font-size: clamp(14px, 1.9vmin, 20px);
+}
+
+/* 跑马灯：内容溢出面板时才滚动（is-scrolling 由 JS 测量后添加）；
+   双拷贝 + translateY(-50%) 无缝循环，子项用 padding-bottom 保证半个轨道恰好一份内容 */
+.kiosk-marquee {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+/* 上下渐隐遮罩仅在滚动时生效：提示「还有更多」；静止时首尾行不应被压暗 */
+.kiosk-marquee.is-scrolling {
+    -webkit-mask-image: linear-gradient(transparent, #000 5%, #000 95%, transparent);
+    mask-image: linear-gradient(transparent, #000 5%, #000 95%, transparent);
+}
+.kiosk-marquee-track { display: flex; flex-direction: column; }
+.kiosk-marquee-track .kiosk-chips { padding-bottom: clamp(8px, 1.2vmin, 14px); }
+.kiosk-marquee.is-scrolling .kiosk-marquee-track {
+    animation: kiosk-scroll var(--marquee-duration, 40s) linear infinite;
+}
+@keyframes kiosk-scroll {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); }
+}
+
+/* ── 大屏布局按长宽比二分（w/h ≥ 1 归横向，< 1 归竖向），无近方形空洞 ──
+   横向（宽 ≥ 高且 ≥700px：投屏、正方形、半屏窗口）：左统计，右两面板上下堆叠填满高度。
+   门槛取 700 而非 960：700–960 的近方形窗口若落入单列兜底，统计行会把名单面板挤成空条 */
+@media (min-width: 700px) and (min-aspect-ratio: 1/1) {
+    .kiosk-body {
+        grid-template-columns: clamp(300px, 26vw, 420px) minmax(0, 1fr);
+        grid-template-rows:
+            minmax(calc(var(--rows-unchecked, 1) * 4.2rem), var(--rows-unchecked, 1) fr)
+            minmax(calc(var(--rows-checked, 1) * 4.2rem), var(--rows-checked, 1) fr);
+        grid-template-areas:
+            "left unchecked"
+            "left checked";
+    }
+    .kiosk-left { justify-content: flex-start; }
+    .kiosk-stats { gap: clamp(10px, 1.8vh, 18px); }
+    .kiosk-big-num { font-size: clamp(80px, 19vh, 220px); }
+    .kiosk-sub { font-size: clamp(15px, 2.4vmin, 28px); }
+    .kiosk-progress,
+    .kiosk-factions { width: 100%; }
+    .kiosk-factions { flex-direction: column; gap: clamp(10px, 2vh, 18px); }
+    .kiosk-qr-panel { width: clamp(160px, 20vmin, 260px); }
+}
+/* 竖向（高 > 宽，如平板 3:4 竖持 / 1071×1434）：顶部统计带，两面板左右并排填满宽度。
+   条件 max-aspect-ratio: 9999/10000 排除正方形（w=h 归横向），避免两块在 1:1 同时命中 */
+@media (min-width: 700px) and (max-aspect-ratio: 9999/10000) {
+    .kiosk-body {
+        grid-template-columns:
+            minmax(0, var(--rows-unchecked, 1) fr)
+            minmax(0, var(--rows-checked, 1) fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-areas:
+            "left left"
+            "unchecked checked";
+    }
+    .kiosk-left {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) auto;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(16px, 4vw, 48px);
+        padding: clamp(6px, 1.2vh, 14px) 0;
+    }
+    .kiosk-stats {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        justify-content: center;
+        column-gap: clamp(14px, 2.5vw, 32px);
+        row-gap: 10px;
+        text-align: left;
+    }
+    .kiosk-big-num { font-size: clamp(64px, 16vh, 140px); }
+    .kiosk-sub { grid-column: 2; }
+    .kiosk-progress { grid-column: 2; width: 100%; }
+    .kiosk-factions { grid-column: 2; width: 100%; }
+    .kiosk-ap { grid-column: 2; }
+    .kiosk-qr-panel { width: clamp(120px, 22vh, 200px); }
+}
+
+/* ── 面板缺员自适应：某一边无人时该面板整体隐藏（v-if），幸存面板接管其轨道 ──
+   默认（单列/三栏）布局：grid-template-areas 固定，隐藏的面板轨道由空态块兜底，
+   不会留白。 */
+.kiosk-panel-empty-all {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    grid-column: 1 / -1;
+    min-height: 120px;
+}
+/* 横向大屏（上下堆叠）：只剩一块面板时独占右列整高 */
+@media (min-width: 700px) and (min-aspect-ratio: 1/1) {
+    .kiosk-body:has(> .kiosk-panel-unchecked:only-of-type) {
+        grid-template-areas:
+            "left unchecked"
+            "left unchecked";
+    }
+    .kiosk-body:has(> .kiosk-panel-checked:only-of-type) {
+        grid-template-areas:
+            "left checked"
+            "left checked";
+    }
+    .kiosk-panel-empty-all { grid-area: unchecked; }
+    .kiosk-body:has(> .kiosk-panel-empty-all:only-of-type) .kiosk-panel-empty-all { grid-area: 1 / 2 / -1 / 2; }
+}
+/* 竖向大屏（左右并排）：只剩一块面板时独占下方整行 */
+@media (min-width: 700px) and (max-aspect-ratio: 9999/10000) {
+    .kiosk-body:has(> .kiosk-panel-unchecked:only-of-type) {
+        grid-template-areas:
+            "left left"
+            "unchecked unchecked";
+    }
+    .kiosk-body:has(> .kiosk-panel-checked:only-of-type) {
+        grid-template-areas:
+            "left left"
+            "checked checked";
+    }
+    .kiosk-panel-empty-all { grid-area: unchecked; }
+    .kiosk-body:has(> .kiosk-panel-empty-all:only-of-type) .kiosk-panel-empty-all { grid-area: 2 / 1 / 2 / -1; }
+}
+
+/* ── 尺寸自适应补丁 ──
+   紧凑高度（笔记本半屏、手机横屏 ≥700px 宽）：压缩大数字与二维码、面板行高下限降到 3rem，
+   保证两块名单在矮视口里同时可见 */
+@media (min-width: 700px) and (min-aspect-ratio: 1/1) and (max-height: 560px) {
+    .kiosk-body {
+        grid-template-rows:
+            minmax(calc(var(--rows-unchecked, 1) * 3rem), var(--rows-unchecked, 1) fr)
+            minmax(calc(var(--rows-checked, 1) * 3rem), var(--rows-checked, 1) fr);
+    }
+    .kiosk-left { gap: clamp(6px, 1.2vh, 12px); }
+    .kiosk-stats { gap: clamp(6px, 1.2vh, 12px); }
+    .kiosk-big-num { font-size: clamp(56px, 13vh, 120px); }
+    .kiosk-qr-panel { width: clamp(120px, 16vmin, 200px); }
+}
+/* 窄屏（<700px，手机竖屏）：图例改为随流排在名单下方，不再悬浮盖住胶囊。
+   （图例基础样式在 kiosk-chips.css，此覆盖必须晚于该文件加载，故也收进 kiosk-chips.css） */
+/* 窄屏且高度紧张：压缩统计列，并给两块名单保底高度，杜绝面板被统计列挤成空条 */
+@media (max-width: 699px) and (max-height: 760px) {
+    .kiosk-left { gap: 8px; }
+    .kiosk-stats { gap: 8px; }
+    .kiosk-big-num { font-size: clamp(44px, 10vmin, 80px); }
+    .kiosk-qr-panel { width: clamp(96px, 24vmin, 150px); }
+    .kiosk-body {
+        grid-template-rows: auto minmax(min(120px, 20vh), 1.1fr) minmax(min(120px, 20vh), 1fr);
+    }
+}
+
+.kiosk-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px calc(20px + env(safe-area-inset-bottom));
+    font-size: 14px;
+    color: var(--color-text-secondary);
+}

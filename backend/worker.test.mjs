@@ -1,23 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 
-const workerSource = readFileSync(new URL('./worker.js', import.meta.url), 'utf8');
+// fetch 监听器全程共享：入口模块只 import 一次（ESM 缓存），
+// 各测试仅切换注入的全局环境，模块内部在调用时读取全局，因此环境切换即时生效
+const listeners = {};
 
-// 在受控上下文中加载 worker.js：注入 Service Worker 风格的全局（addEventListener / caches），
-// 环境变量与 fetch 通过 globalThis / 参数注入。仅覆盖不依赖真实外部网络的行为。
+// 在 Node 内模拟 Service Worker 运行时加载 worker.js：先注入 addEventListener 再 import，
+// caches / fetch / 环境变量在每次 loadWorker 时注入，模块内部调用时读取全局
+globalThis.addEventListener = (type, handler) => { listeners[type] = handler; };
+await import('./worker.js');
+
+// 注入一套测试环境后返回请求句柄（同步返回，与用例的既有写法兼容）
 function loadWorker({ allowedSpreadsheetIds, fetchImpl, credentials } = {}) {
-  const listeners = {};
-  const cacheStore = new Map();
-  const cache = {
-    default: {
-      match: async (key) => cacheStore.get(key),
-      put: async (key, response) => { cacheStore.set(key, response); },
-      delete: async (key) => { cacheStore.delete(key); },
-    },
-  };
-  const addEventListener = (type, handler) => { listeners[type] = handler; };
-
   if (allowedSpreadsheetIds === undefined) {
     delete globalThis.ALLOWED_SPREADSHEET_IDS;
   } else {
@@ -31,9 +25,16 @@ function loadWorker({ allowedSpreadsheetIds, fetchImpl, credentials } = {}) {
     delete globalThis.GOOGLE_CLIENT_EMAIL;
   }
 
-  const fetchStub = fetchImpl || (async () => { throw new Error('network disabled in tests'); });
-  // fetch 作为参数注入 worker 作用域，测试中可拦截对 Google 的请求
-  new Function('addEventListener', 'caches', 'fetch', workerSource)(addEventListener, cache, fetchStub);
+  const cacheStore = new Map();
+  globalThis.caches = {
+    default: {
+      match: async (key) => cacheStore.get(key),
+      put: async (key, response) => { cacheStore.set(key, response); },
+      delete: async (key) => { cacheStore.delete(key); },
+    },
+  };
+  // fetch 注入为全局，测试中可拦截对 Google 的请求
+  globalThis.fetch = fetchImpl || (async () => { throw new Error('network disabled in tests'); });
 
   return {
     handle(request) {

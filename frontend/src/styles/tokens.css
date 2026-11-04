@@ -1,0 +1,158 @@
+/* 设计令牌：颜色/材质/阴影/圆角/层级/字号的唯一来源，暗色变体经 html.dark 覆写。
+   供全部界面文件引用；新增令牌请加在这里，不要在组件样式里另起炉灶。 */
+/* ═══ 设计令牌 ═══
+   遵循 Apple Liquid Glass 两层模型：
+   - 内容层（卡片/列表/控件）：标准实色材质，安静可读
+   - 导航层（顶栏/底部 Tab 栏/大屏图例）：唯一的 Liquid Glass 悬浮层 */
+:root {
+    --color-primary: #14a3ae;
+    --color-primary-strong: #0d7d87;
+    --color-primary-soft: rgba(20, 163, 174, 0.14);
+
+    --color-focus-ring: rgba(20, 163, 174, 0.4);
+
+    /* 内容层：标准材质（近实色） */
+    --color-card-bg: rgba(255, 255, 255, 0.94);
+    --color-card-bg-dark: #1c1c1e;
+    --card-border: rgba(0, 0, 0, 0.055);
+    --card-border-dark: rgba(255, 255, 255, 0.08);
+
+    /* 导航层：Liquid Glass 材质（regular 变体，保证可读性） */
+    --chrome-bg: rgba(255, 255, 255, 0.68);
+    --chrome-bg-dark: rgba(28, 30, 32, 0.62);
+    --chrome-border: rgba(255, 255, 255, 0.5);
+    --chrome-border-dark: rgba(255, 255, 255, 0.12);
+    --chrome-shine: rgba(255, 255, 255, 0.85);
+    --chrome-shine-dark: rgba(255, 255, 255, 0.22);
+    --glass-blur: 30px;
+
+    /* 内容层控件：iOS 中性填充 */
+    --color-control-bg: rgba(120, 120, 128, 0.12);
+    --color-control-bg-strong: rgba(120, 120, 128, 0.2);
+    --color-control-bg-dark: rgba(120, 120, 128, 0.24);
+    --color-control-bg-strong-dark: rgba(120, 120, 128, 0.34);
+
+    --color-separator: rgba(60, 60, 67, 0.14);
+    --color-text: #10242a;
+    --color-text-secondary: #5f7278;
+    /* 画布底色：body 与大屏覆盖层共用；输入控件焦点态用 field-focus */
+    --color-bg: #f2f6f7;
+    --color-field-focus-bg: #eef3f4;
+
+    --color-success: #34c759;
+    --color-warning: #f59e0b;
+    --color-danger: #ff453a;
+
+    --color-success-badge-bg: rgba(52, 199, 89, 0.15);
+    --color-success-badge-text: #0f6b37;
+    --color-danger-badge-bg: rgba(255, 69, 58, 0.13);
+    --color-danger-badge-text: #b3231b;
+
+    /* 警示 tint 面（告警条/横幅/提示小字）：浅琥珀底深琥珀字，保证对比度 */
+    --color-warning-tint-bg: rgba(245, 158, 11, 0.15);
+    --color-warning-tint-text: #92400e;
+    /* 一等奖金色强调（与警示同源琥珀，语义为奖励而非警示） */
+    --color-gold-bg: rgba(245, 158, 11, 0.18);
+    --color-gold-text: #b45309;
+
+    --color-resistance: #2563eb;
+    --color-resistance-bg: rgba(37, 99, 235, 0.12);
+    --color-resistance-text: #1d4ed8;
+    --color-enlightened: #16a34a;
+    --color-enlightened-bg: rgba(22, 163, 74, 0.12);
+    --color-enlightened-text: #15803d;
+
+    /* 行内动作按钮：实色 tinted 填充 */
+    --action-resistance-bg: rgba(37, 99, 235, 0.13);
+    --action-resistance-text: #1d4ed8;
+    --action-enlightened-bg: rgba(22, 163, 74, 0.13);
+    --action-enlightened-text: #15803d;
+
+    /* 主色实心填充：主按钮与行内主操作共用（内容层实色，不用玻璃） */
+    --color-accent-fill: rgba(20, 163, 174, 0.8);
+    --color-accent-fill-hover: rgba(20, 163, 174, 0.88);
+    --shadow-accent: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 4px 16px rgba(20, 163, 174, 0.4);
+
+    /* 分段控件/筛选钮激活态：同一枚「浮起白块」 */
+    --color-segment-active-bg: rgba(255, 255, 255, 0.92);
+    --shadow-segment-active: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+
+    /* 阴影：内容卡轻投影，导航层深投影 */
+    --shadow-card: 0 1px 3px rgba(16, 42, 48, 0.06), 0 4px 14px rgba(16, 42, 48, 0.05);
+    --shadow-chrome: 0 12px 36px rgba(16, 42, 48, 0.16), 0 2px 8px rgba(16, 42, 48, 0.08);
+
+    /* 圆角阶梯：6 标签 / 10 分段 / 12 控件 / 16 面板砖 / 20 卡片；胶囊用 999px */
+    --radius-tag: 6px;
+    --radius-segment: 10px;
+    --radius-control: 12px;
+    --radius-tile: 16px;
+    --radius-card: 20px;
+
+    /* 层级阶梯：chrome 导航 < modal 弹窗 < kiosk 大屏 < toast（任何模式下都可见） */
+    --z-chrome: 50;
+    --z-modal: 60;
+    --z-kiosk: 70;
+    --z-kiosk-legend: 72;
+    --z-toast: 80;
+
+    --font-title: 20px;
+    --font-body: 16px;
+    --font-caption: 13px;
+
+    accent-color: var(--color-primary);
+    color-scheme: light dark;
+
+    /* 等宽字体：标识符（表格 ID 等）专用，要求 0/O、1/l/I 可区分 */
+    --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* 标识符等宽字体 */
+.font-id {
+    font-family: var(--font-mono);
+    letter-spacing: 0.01em;
+}
+
+html.dark {
+    --color-separator: rgba(255, 255, 255, 0.1);
+    --color-text: #eceff0;
+    --color-text-secondary: #98a3a6;
+    --color-bg: #0c1012;
+    --color-field-focus-bg: rgba(120, 120, 128, 0.3);
+
+    --color-success: #30d158;
+    --color-success-badge-bg: rgba(48, 209, 88, 0.16);
+    --color-success-badge-text: #7ff0ae;
+    --color-danger-badge-bg: rgba(255, 105, 97, 0.14);
+    --color-danger-badge-text: #ffb3ae;
+
+    --color-warning-tint-bg: rgba(245, 158, 11, 0.22);
+    --color-warning-tint-text: #fcd34d;
+    --color-gold-text: #fcd34d;
+
+    --color-resistance: rgba(147, 197, 253, 0.95);
+    --color-resistance-bg: rgba(96, 165, 250, 0.16);
+    --color-resistance-text: rgba(191, 219, 254, 0.95);
+    --color-enlightened: rgba(134, 239, 172, 0.95);
+    --color-enlightened-bg: rgba(74, 222, 128, 0.14);
+    --color-enlightened-text: rgba(187, 247, 208, 0.95);
+
+    --action-resistance-bg: rgba(96, 165, 250, 0.18);
+    --action-resistance-text: rgba(191, 219, 254, 0.98);
+    --action-enlightened-bg: rgba(74, 222, 128, 0.16);
+    --action-enlightened-text: rgba(187, 247, 208, 0.98);
+
+    --color-accent-fill: rgba(15, 140, 150, 0.5);
+    --color-accent-fill-hover: rgba(15, 140, 150, 0.6);
+    --shadow-accent: inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 2px 10px rgba(20, 163, 174, 0.3);
+
+    --color-segment-active-bg: rgba(99, 99, 102, 0.65);
+
+    --card-border: rgba(255, 255, 255, 0.08);
+
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.2);
+    --shadow-chrome: 0 12px 36px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.title-text { font-size: var(--font-title); font-weight: 700; letter-spacing: -0.02em; }
+.text-body { font-size: var(--font-body); }
+.text-caption { font-size: var(--font-caption); }

@@ -1,0 +1,246 @@
+/* 签到操作页专属：名单紧凑行/阵营标签/状态徽章/行内动作按钮/长按进度环，
+   以及筛选收纳按钮、计数芯片与表单告警条。 */
+/* ═══ Agent 紧凑行列表 ═══ */
+/* 显式分列：窄屏 1 列，≥768px 2 列，≥1120px 3 列（由 App.vue 按名单长度均分到列容器），
+   列间发丝分隔线；列容器内首行无分隔条，任何一列顶部都干净。 */
+.agent-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+@media (min-width: 768px) {
+    .agent-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; }
+    .agent-list .agent-col + .agent-col { border-left: 1px solid var(--color-separator); padding-left: 40px; }
+}
+@media (min-width: 1120px) {
+    .agent-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.agent-col { min-width: 0; }
+/* 行结构：单行三区块——1「ID+阵营」靠左（空间不足时优先省略 ID），
+   2「ΔAP+时间」与 3「状态+按钮」靠右；各区块内部上下两行，行高全行恒定。 */
+.agent-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    min-width: 0;
+    transition: background-color 0.15s ease;
+}
+.agent-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.agent-cell-id { flex: 1 1 auto; }          /* 1：占余下空间，ID 溢出时省略号 */
+.agent-cell-data { flex: 0 0 auto; align-items: flex-end; text-align: right; }
+.agent-cell-action { flex: 0 0 auto; align-items: flex-end; }
+.agent-row:hover { background: rgba(120, 120, 128, 0.07); }
+html.dark .agent-row:hover { background: rgba(255, 255, 255, 0.045); }
+.agent-row + .agent-row { border-top: 1px solid var(--color-separator); }
+
+.agent-row-name { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-row-name.is-resistance { color: var(--color-resistance-text); }
+.agent-row-name.is-enlightened { color: var(--color-enlightened-text); }
+
+
+.faction-tag {
+    width: fit-content;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    padding: 2px 7px;
+    border-radius: var(--radius-tag);
+}
+.faction-tag.is-resistance { background: var(--color-resistance-bg); color: var(--color-resistance-text); }
+.faction-tag.is-enlightened { background: var(--color-enlightened-bg); color: var(--color-enlightened-text); }
+
+.agent-row-ap {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px;
+    text-align: right;
+}
+.agent-row-ap.is-negative { color: var(--color-danger-badge-text); }
+.ap-delta {
+    width: 11px;
+    height: 11px;
+    flex: none;
+    margin-top: 1px;
+}
+.agent-row-time { font-size: 11px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* 状态徽章是「标签」：与阵营标签同族（方角 --radius-tag），和下方的胶囊「动作」
+   保持同高同字号以对齐节奏，但形状不同——方角=状态标签，胶囊=可交互 */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    padding: 0 12px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: var(--radius-tag);
+    white-space: nowrap;
+}
+.status-badge.is-checked {
+    background: var(--color-success-badge-bg);
+    color: var(--color-success-badge-text);
+}
+.status-badge.is-unchecked {
+    background: var(--color-danger-badge-bg);
+    color: var(--color-danger-badge-text);
+}
+
+/* 行内动作按钮：内容层内的标准 tinted 控件 */
+.agent-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0 12px;
+    border-radius: 999px;
+    color: var(--color-text);
+    background: var(--color-control-bg);
+    transition: transform 0.15s ease, background-color 0.2s ease;
+}
+.agent-action:hover { background: var(--color-control-bg-strong); }
+.agent-action:active { transform: scale(0.96); }
+/* 长按进度环场景下缩放由 .hold-wrap 统一承担，按钮自身不再缩，避免环与轮廓脱开 */
+.hold-wrap .agent-action:active { transform: none; }
+
+.agent-action.action-resistance {
+    background: var(--action-resistance-bg);
+    color: var(--action-resistance-text);
+}
+.agent-action.action-resistance:hover { background: rgba(37, 99, 235, 0.22); }
+.agent-action.action-enlightened {
+    background: var(--action-enlightened-bg);
+    color: var(--action-enlightened-text);
+}
+.agent-action.action-enlightened:hover { background: rgba(22, 163, 74, 0.22); }
+.agent-action.action-primary {
+    background: var(--color-accent-fill);
+    color: #fff;
+    box-shadow: var(--shadow-accent);
+}
+.agent-action.action-primary:hover { background: var(--color-accent-fill-hover); }
+
+/* ═══ 筛选收纳按钮（三横线） ═══ */
+/* 与 AppSegmentedControl 同高同圆角，视觉上像排序控件的最后一个「块」 */
+.segment-active {
+    background: var(--color-segment-active-bg);
+    box-shadow: var(--shadow-segment-active);
+}
+.filter-toggle {
+    position: relative;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text);
+    background: var(--color-control-bg);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+html.dark .filter-toggle { background: var(--color-control-bg-dark); }
+.filter-toggle:hover { background: var(--color-control-bg-strong); }
+html.dark .filter-toggle:hover { background: var(--color-control-bg-strong-dark); }
+.filter-toggle.is-open {
+    background: var(--color-segment-active-bg);
+    box-shadow: var(--shadow-segment-active);
+}
+.filter-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-card-bg);
+}
+html.dark .filter-dot { box-shadow: 0 0 0 2px var(--color-card-bg-dark); }
+
+/* 筛选结果计数芯片：与筛选按钮同排常驻，点击一键清除筛选 */
+.filter-count-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--color-primary-strong);
+    background: var(--color-primary-soft);
+    transition: background-color 0.2s ease, transform 0.15s ease;
+}
+html.dark .filter-count-chip { color: var(--color-primary); }
+.filter-count-chip:hover { background: rgba(20, 163, 174, 0.22); }
+.filter-count-chip:active { transform: scale(0.96); }
+.filter-count-chip > svg:last-child { width: 12px; height: 12px; opacity: 0.7; }
+
+/* ═══ 签到页表单告警条 ═══ */
+.form-warning {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-radius: var(--radius-tile);
+    background: var(--color-warning-tint-bg);
+    color: var(--color-warning-tint-text);
+    font-size: 14px;
+    font-weight: 500;
+}
+.form-warning-action {
+    flex: none;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 4px 6px;
+    border-radius: 8px;
+}
+
+/* ═══ 撤销签到长按进度环 ═══ */
+/* SVG 圆角矩形环贴着胶囊按钮外缘：rx 自动钳到高度一半，与胶囊圆角同心、描边粗细均匀；
+   pathLength=1 归一化周长，stroke-dashoffset 按 --hold-progress (0~1) 从整环走到零 */
+.hold-wrap {
+    position: relative;
+    display: inline-flex;
+}
+/* 按下时缩放整个包裹层：环与按钮同步缩放，环始终贴住按钮轮廓 */
+.hold-wrap:has(.agent-action.is-pressing) { transform: scale(0.96); }
+.hold-ring {
+    position: absolute;
+    inset: -3px;
+    pointer-events: none;
+    overflow: visible;
+}
+.hold-ring svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.hold-ring rect {
+    x: 1.5px;
+    y: 1.5px;
+    width: calc(100% - 3px);
+    height: calc(100% - 3px);
+    rx: 999px;
+    fill: none;
+    stroke: var(--color-danger);
+    stroke-width: 3;
+    stroke-dasharray: 1;
+    stroke-dashoffset: calc(1 - var(--hold-progress, 0));
+}
+.agent-action.is-pressing {
+    background: var(--color-danger-badge-bg);
+    color: var(--color-danger-badge-text);
+}

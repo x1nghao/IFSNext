@@ -1,0 +1,9 @@
+/* 减弱动态偏好：关闭大屏跑马灯/数字滚动/中奖揭晓动画。
+   注意：必须放在全部动画定义之后引入——同特异性下源码顺序靠后的声明才生效
+  （原单文件中本块位于 .lottery-winner 定义之前，覆盖从未生效，此处顺位修复）。 */
+@media (prefers-reduced-motion: reduce) {
+    .kiosk-marquee.is-scrolling .kiosk-marquee-track { animation: none; }
+    /* 数字滚动与中奖揭晓动画同样尊重减弱动态偏好：内容直接呈现，不再缩放淡入 */
+    .kiosk-big-num { animation: none; }
+    .lottery-winner { animation: none; }
+}

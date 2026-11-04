@@ -1,0 +1,54 @@
+/* 设置页：历史场次列表。 */
+/* ═══ 历史场次 ═══ */
+.sheet-recents {
+    border: 1px solid var(--color-separator);
+    border-radius: var(--radius-control);
+    overflow: hidden;
+}
+.sheet-recent-row { display: flex; align-items: stretch; }
+.sheet-recent-row + .sheet-recent-row { border-top: 1px solid var(--color-separator); }
+.sheet-recent-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    text-align: left;
+    transition: background-color 0.15s ease;
+}
+.sheet-recent-main:hover { background: var(--color-control-bg); }
+.sheet-recent-row.is-current .sheet-recent-main:hover { background: transparent; }
+.sheet-recent-row.is-current { background: var(--color-primary-soft); }
+.sheet-recent-id {
+    font-size: 14px;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sheet-recent-badge {
+    flex: none;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: var(--radius-tag);
+    background: var(--color-primary);
+    color: #fff;
+}
+.sheet-recent-date {
+    flex: none;
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+.sheet-recent-remove {
+    flex: none;
+    width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-secondary);
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+.sheet-recent-remove:hover { color: var(--color-danger); background: var(--color-danger-badge-bg); }

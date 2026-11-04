@@ -74,7 +74,7 @@ npm test
 
 ## 🛠️ 后端部署 (Cloudflare Workers)
 
-后端是单文件 Worker（`backend/worker.js`），仓库已含部署配置 `backend/wrangler.toml`（指向线上 Worker `ifsbackend`，`keep_vars = true` 保留 Dashboard 配置的变量）。部署：
+后端入口是 `backend/worker.js`（路由分发），具体能力按模块拆在 `backend/lib/`（环境配置 / HTTP / 认证 / Sheets 读写 / 表单探测 / 错误映射）；Wrangler 打包时会把 `lib/` 内联进单个部署脚本，线上仍是单个 Worker。仓库已含部署配置 `backend/wrangler.toml`（指向线上 Worker `ifsbackend`，`keep_vars = true` 保留 Dashboard 配置的变量）。部署：
 
 ```bash
 cd backend
@@ -105,13 +105,15 @@ npx wrangler deploy
 IFSNext/
 ├── frontend/                 # 新版前端应用
 │   ├── src/
-│   │   ├── components/       # UI 组件 (AppButton, AppInput 等)
+│   │   ├── components/       # 界面组件（ui 基础件 + settings/lottery/operations/kiosk 视图）
+│   │   ├── composables/      # 领域状态模块（设置/数据/筛选/核验/抽奖/大屏…）
 │   │   ├── locales/          # 国际化语言包 (zh-CN / zh-TW / en-US)
-│   │   ├── types/            # 共享类型定义 (Agent, Log)
+│   │   ├── types/            # 共享类型定义 (Agent, LotteryDrawRecord)
 │   │   ├── utils/            # 纯逻辑模块与单元测试
-│   │   └── App.vue           # 主应用组件
+│   │   ├── i18n.ts           # i18n 实例（组件外也可取文案）
+│   │   └── App.vue           # 应用壳与编排（顶栏/导航/视图切换/生命周期）
 │   └── vite.config.ts        # Vite 配置
-├── backend/                  # Cloudflare Worker 后端代码与路由测试
+├── backend/                  # Cloudflare Worker：worker.js 入口 + lib/ 能力模块与路由测试
 ├── .github/workflows/ci.yml  # CI（测试 + 构建）
 └── README.md                 # 项目文档
 ```

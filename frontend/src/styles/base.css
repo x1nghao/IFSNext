@@ -1,0 +1,64 @@
+/* 全局基底：根容器高度、过渡动画、页面画布与字体、键盘焦点环、PWA/移动端行为。 */
+
+.fade-enter-active, .fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+    opacity: 0;
+}
+
+#app { min-height: 100vh; }
+@supports (height: 100dvh) {
+    #app { min-height: 100dvh; }
+}
+
+/* 键盘焦点环：输入类控件已有 :focus 焦点环，这里覆盖按钮与链接 */
+button:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+}
+
+/* ═══ 背景：单一色相、近乎实色，为悬浮玻璃层提供干净的衬托 ═══ */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+/* 画布渐变：主界面与大屏覆盖层共用同一套，保证进入大屏底色无跳变 */
+body::before,
+.kiosk-overlay::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(120% 46% at 50% 0%, rgba(20, 163, 174, 0.07), transparent 70%),
+        linear-gradient(180deg, #f3f7f8, #edf2f4);
+}
+html.dark body::before,
+html.dark .kiosk-overlay::before {
+    background:
+        radial-gradient(120% 46% at 50% 0%, rgba(20, 163, 174, 0.05), transparent 70%),
+        linear-gradient(180deg, #0d1315, #0b0f11);
+}
+
+html.pwa, body.pwa { overscroll-behavior-y: none; }
+
+/* ═══ PWA & Mobile ═══ */
+body {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button, a, input, select {
+    touch-action: manipulation;
+}
+
+.no-select {
+    -webkit-user-select: none;
+    user-select: none;
+}

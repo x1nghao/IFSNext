@@ -21,3 +21,8 @@ export const addIgnoredFormUrl = (list: string[], url: string): string[] => {
   if (!url || list.includes(url)) return list;
   return [...list, url];
 };
+
+// 判断链接是否为 Google 表单页（/forms/d/ 或 /forms/d/e/ 两种路径都认）；
+// 与后端 normalizeGoogleFormUrl 的路径规则保持一致，前端先行拦截非表单链接
+export const isGoogleFormUrl = (url: string): boolean =>
+  /^https:\/\/docs\.google\.com\/forms\/d(?:\/e)?\/[a-zA-Z0-9_-]+/.test(url);
